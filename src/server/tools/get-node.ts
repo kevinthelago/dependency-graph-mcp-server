@@ -52,7 +52,7 @@ function serializeNode(
   if (attrs.symbolKind !== undefined) node.symbolKind = attrs.symbolKind as string;
   if (attrs.file !== undefined) node.file = attrs.file as string;
   if (includeLocations && attrs.loc !== undefined) {
-    node.loc = attrs.loc as NonNullable<SerializedNode['loc']>;
+    node.loc = attrs.loc as { line: number; col: number };
   }
   if (attrs.exported !== undefined) node.exported = attrs.exported as boolean;
   return node;

@@ -12,7 +12,10 @@ afterAll(() => {
 });
 
 const fakeFragment: AnalysisFragment = {
-  file: { id: "file:src/x.ts", kind: "file", language: "ts", name: "src/x.ts" },
+  file: {
+    id: "file:src/x.ts",
+    attrs: { kind: "file", filePath: "src/x.ts", displayName: "src/x.ts", language: "ts" },
+  },
   symbols: [],
   edges: [],
   imports: [],

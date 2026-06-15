@@ -1,11 +1,11 @@
 import type { NodeId, NodeKind } from "../graph/model.js";
 import type { GraphView } from "../graph/store.js";
 
-/** Result of resolving a user-supplied target string to a graph node. */
+/** Result of resolving a user-supplied target string to a graph node (contract shape). */
 export type ResolveResult =
-  | { kind: "found"; id: NodeId }
-  | { kind: "candidates"; items: NodeId[]; message: string }
-  | { kind: "notFound"; message: string };
+  | { id: NodeId }
+  | { candidates: NodeId[] }
+  | { notFound: true };
 
 /** Context passed to every tool handler. */
 export interface ToolContext {

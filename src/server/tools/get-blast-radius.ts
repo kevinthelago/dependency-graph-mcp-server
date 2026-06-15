@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { resolveTarget } from "../../query/resolver.js";
+import { resolveTarget, parseStringTarget } from "../../query/resolver.js";
 import { reverseBlastBfs } from "../../query/traversal.js";
 import {
   containingFileId,
@@ -82,13 +82,13 @@ export async function getBlastRadius(
   const { view } = ctx;
 
   // 1. Resolve the target string to a node id
-  const resolved = resolveTarget(view, target);
-  if (resolved.kind === "notFound") {
-    throw new Error(resolved.message);
+  const resolved = resolveTarget(view, parseStringTarget(target));
+  if ("notFound" in resolved) {
+    throw new Error(`Target not found: ${target}`);
   }
-  if (resolved.kind === "candidates") {
+  if ("candidates" in resolved) {
     throw new Error(
-      `${resolved.message}. Disambiguate by using the full node id or an absolute path.`
+      `Ambiguous target "${target}" — ${resolved.candidates.length} matches. Disambiguate by using the full node id or an absolute path.`,
     );
   }
 
