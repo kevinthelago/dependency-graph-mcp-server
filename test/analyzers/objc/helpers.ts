@@ -11,7 +11,7 @@ export function cap(
   row: number,
   col = 0,
 ): CaptureResult {
-  return { name, text, startPosition: { row, col } };
+  return { name, text, startPosition: { row, column: col } };
 }
 
 /** Stub resolver that tracks calls and returns configurable results. */
