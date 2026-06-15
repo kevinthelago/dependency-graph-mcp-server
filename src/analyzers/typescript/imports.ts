@@ -91,18 +91,18 @@ function processModuleRef(
       const pkg = packageName(specifier);
       const toId = externalId(pkg);
       edges.push(edge(fromId, toId, 'external', isTypeOnly, isWild, 'resolved', edgeLoc));
-      imports.push({ specifier, resolution: 'resolved' });
+      imports.push({ specifier, isExternal: true, isUnresolved: false, wildcard: isWild });
     } else {
       const targetRel = toRelPath(resolvedFile, repoRoot);
       const toId = fileId(targetRel);
       edges.push(edge(fromId, toId, 'file', isTypeOnly, isWild, 'resolved', edgeLoc));
-      imports.push({ specifier, resolvedPath: targetRel, resolution: 'resolved' });
+      imports.push({ specifier, resolvedPath: targetRel, isExternal: false, isUnresolved: false, wildcard: isWild });
     }
   } else {
     // Unresolved — still emit the edge with a best-effort external id
     const toId = externalId(specifier);
     edges.push(edge(fromId, toId, 'external', isTypeOnly, isWild, 'unresolved', edgeLoc));
-    imports.push({ specifier, resolution: 'unresolved' });
+    imports.push({ specifier, isExternal: false, isUnresolved: true, wildcard: isWild });
   }
 }
 

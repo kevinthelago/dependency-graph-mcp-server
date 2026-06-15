@@ -121,7 +121,7 @@ describe('external leaf + unresolved', () => {
   });
 
   it('unresolved imports are recorded in fragment.imports', () => {
-    const unresolved = frag.imports.filter((i) => i.resolution === 'unresolved');
+    const unresolved = frag.imports.filter((i) => i.isUnresolved);
     expect(unresolved.length).toBeGreaterThan(0);
   });
 });

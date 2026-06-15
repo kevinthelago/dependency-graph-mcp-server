@@ -36,7 +36,8 @@ describe('extractImports', () => {
     expect(edges[0]!.to).toBe('file:src/utils.ts');
     expect(edges[0]!.kind).toBe('import');
     expect(edges[0]!.resolution).toBe('resolved');
-    expect(imports[0]!.resolution).toBe('resolved');
+    expect(imports[0]!.isUnresolved).toBe(false);
+    expect(imports[0]!.isExternal).toBe(false);
     expect(imports[0]!.resolvedPath).toBe('src/utils.ts');
   });
 
@@ -49,7 +50,7 @@ describe('extractImports', () => {
 
     const { edges, imports } = extractImports(sf, opts, host, SIMPLE_ROOT);
     expect(edges[0]!.resolution).toBe('unresolved');
-    expect(imports[0]!.resolution).toBe('unresolved');
+    expect(imports[0]!.isUnresolved).toBe(true);
   });
 
   it('tags type-only imports', () => {
