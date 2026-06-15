@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type Graph from 'graphology';
-import { resolveTarget } from '../../query/resolve.js';
+import { resolveTarget, type TargetSpec } from '../../query/resolve.js';
 import { composedView } from '../../query/store.js';
 
 // Local type aliases — the stub composedView returns a raw graphology Graph.
@@ -128,7 +128,7 @@ function findKShortestSimplePaths(
     }
 
     const { path, visited } = queue.shift()!;
-    const current = path[path.length - 1];
+    const current = path[path.length - 1]!;
 
     // Depth limit: path.length - 1 = hop count so far
     if (maxDepth !== undefined && path.length - 1 >= maxDepth) continue;
@@ -195,12 +195,13 @@ function serializeEdge(
   }
 
   const edgeKeys = graph.directedEdges(src, dst);
-  if (edgeKeys.length === 0) {
+  const firstEdge = edgeKeys[0];
+  if (edgeKeys.length === 0 || firstEdge === undefined) {
     // Defensive fallback; shouldn't happen on a consistent graph
     return { from: src, to: dst, kind: 'import', targetType: 'file' };
   }
 
-  const attrs = graph.getEdgeAttributes(edgeKeys[0]) as Partial<GEdge>;
+  const attrs = graph.getEdgeAttributes(firstEdge) as Partial<GEdge>;
   const edge: PathEdge = {
     from: src,
     to: dst,
@@ -222,7 +223,7 @@ function buildTracedPath(
   const nodes = nodeIds.map((id) => serializeNode(graph, id));
   const edges: PathEdge[] = [];
   for (let i = 0; i < nodeIds.length - 1; i++) {
-    edges.push(serializeEdge(graph, nodeIds[i], nodeIds[i + 1], direction, includeLocations));
+    edges.push(serializeEdge(graph, nodeIds[i]!, nodeIds[i + 1]!, direction, includeLocations));
   }
   return { nodes, edges };
 }
@@ -235,8 +236,9 @@ export async function handleTracePaths(
 ): Promise<TracePathsResult> {
   const graph = composedView(ctx.worktreeId);
 
-  const fromResult = resolveTarget(graph, input.from);
-  const toResult = resolveTarget(graph, input.to);
+  // Cast needed: Zod infers `symbol?: string | undefined` but TargetSpec uses exactOptionalPropertyTypes.
+  const fromResult = resolveTarget(graph, input.from as TargetSpec);
+  const toResult = resolveTarget(graph, input.to as TargetSpec);
 
   // Unresolvable endpoints — return not-found; candidates win over notFound
   if ('candidates' in fromResult) return { found: false, candidates: fromResult.candidates };

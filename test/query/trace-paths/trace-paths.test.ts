@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import Graph from 'graphology';
-import type { GraphView } from '../../../src/query/types.js';
 import { _setTestView, _clearTestViews } from '../../../src/query/store.js';
 import { handleTracePaths } from '../../../src/server/tools/trace-paths.js';
 
@@ -40,12 +39,12 @@ function edgeWithLoc(
   });
 }
 
-function setGraph(g: GraphView): void {
+function setGraph(g: Graph): void {
   _setTestView(WORKTREE, g);
 }
 
 function nodeIds(result: Awaited<ReturnType<typeof handleTracePaths>>, pathIndex = 0): string[] {
-  if ('paths' in result) return result.paths[pathIndex].nodes.map((n) => n.id);
+  if ('paths' in result) return result.paths[pathIndex]?.nodes.map((n) => n.id) ?? [];
   return [];
 }
 
@@ -70,7 +69,7 @@ describe('trace_paths', () => {
     expect(result).toMatchObject({
       paths: [{ nodes: [{ id: 'file:a' }, { id: 'file:b' }] }],
     });
-    expect('paths' in result && result.paths[0].edges).toMatchObject([
+    expect('paths' in result && result.paths[0]?.edges).toMatchObject([
       { from: 'file:a', to: 'file:b', kind: 'import' },
     ]);
   });
@@ -138,8 +137,8 @@ describe('trace_paths', () => {
     if (!('paths' in result)) return;
     expect(result.paths).toHaveLength(2);
     // Shortest (1 hop) must be first
-    expect(result.paths[0].nodes).toHaveLength(2);
-    expect(result.paths[1].nodes).toHaveLength(4);
+    expect(result.paths[0]?.nodes).toHaveLength(2);
+    expect(result.paths[1]?.nodes).toHaveLength(4);
   });
 
   // ── reverse direction ────────────────────────────────────────────────────────
@@ -160,7 +159,7 @@ describe('trace_paths', () => {
 
     expect('paths' in result).toBe(true);
     if (!('paths' in result)) return;
-    expect(result.paths[0].nodes.map((n) => n.id)).toEqual(['file:c', 'file:b', 'file:a']);
+    expect(result.paths[0]?.nodes.map((n) => n.id)).toEqual(['file:c', 'file:b', 'file:a']);
   });
 
   it('reverse direction: no path from source node when it has no dependents', async () => {
@@ -202,7 +201,7 @@ describe('trace_paths', () => {
     );
     expect('paths' in any).toBe(true);
     if (!('paths' in any)) return;
-    expect(any.paths[0].nodes.map((n) => n.id)).toEqual(['file:a', 'file:b', 'file:c']);
+    expect(any.paths[0]?.nodes.map((n) => n.id)).toEqual(['file:a', 'file:b', 'file:c']);
   });
 
   // ── no path ──────────────────────────────────────────────────────────────────
@@ -326,7 +325,7 @@ describe('trace_paths', () => {
 
     expect('paths' in result).toBe(true);
     if (!('paths' in result)) return;
-    expect(result.paths[0].edges[0].loc).toEqual({ line: 5, col: 10 });
+    expect(result.paths[0]?.edges[0]?.loc).toEqual({ line: 5, col: 10 });
   });
 
   it('includeLocations: false omits loc even when present', async () => {
@@ -342,7 +341,7 @@ describe('trace_paths', () => {
 
     expect('paths' in result).toBe(true);
     if (!('paths' in result)) return;
-    expect(result.paths[0].edges[0].loc).toBeUndefined();
+    expect(result.paths[0]?.edges[0]?.loc).toBeUndefined();
   });
 
   // ── unknown / ambiguous endpoints ─────────────────────────────────────────────
@@ -453,7 +452,7 @@ describe('trace_paths', () => {
 
     expect('paths' in result).toBe(true);
     if (!('paths' in result)) return;
-    expect(result.paths[0].edges[0]).toMatchObject({ kind: 'reference', targetType: 'symbol' });
+    expect(result.paths[0]?.edges[0]).toMatchObject({ kind: 'reference', targetType: 'symbol' });
   });
 
   // ── worktree isolation ────────────────────────────────────────────────────────
