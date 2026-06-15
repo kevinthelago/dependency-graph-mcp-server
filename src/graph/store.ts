@@ -73,6 +73,89 @@ export interface Overlay {
   coveredFiles(): ReadonlySet<string>;
 }
 
+import type { FileSlice } from './model.js';
+
+/** Read-only view returned by GraphStore.composedView(). */
+export interface StoreView {
+  hasNode(id: NodeId): boolean;
+  nodesForFile(filePath: string): Node[];
+  getNodeAttributes(id: NodeId): NodeAttrs;
+  forEachNode(cb: (id: NodeId, attrs: NodeAttrs) => void): void;
+  forEachOutEdge(
+    id: NodeId,
+    cb: (edge: string, attrs: EdgeAttrs, src: NodeId, tgt: NodeId) => void,
+  ): void;
+  inDegree(id: NodeId): number;
+  order: number;
+  size: number;
+}
+
+/**
+ * In-memory graph store: base slices + per-worktree overlays.
+ * The core stream (core-3) will replace this with the full durable implementation.
+ */
+export class GraphStore {
+  private readonly _base = new Map<string, FileSlice>();
+  private readonly _overlays = new Map<string, Map<string, FileSlice | null>>();
+
+  applyBaseSlice(slice: FileSlice): void {
+    this._base.set(slice.filePath, slice);
+  }
+
+  applyOverlaySlice(worktreeId: string, slice: FileSlice): void {
+    this._overlayFor(worktreeId).set(slice.filePath, slice);
+  }
+
+  markOverlayDeleted(worktreeId: string, filePath: string): void {
+    this._overlayFor(worktreeId).set(filePath, null);
+  }
+
+  composedView(worktreeId: string): StoreView {
+    const overlay = this._overlays.get(worktreeId) ?? new Map<string, FileSlice | null>();
+    const composed = new Map<string, FileSlice>();
+    for (const [fp, slice] of this._base) {
+      if (!overlay.has(fp)) composed.set(fp, slice);
+    }
+    for (const [fp, slice] of overlay) {
+      if (slice !== null) composed.set(fp, slice);
+    }
+    const allNodes = new Map<string, Node>();
+    const allEdges: Array<{ src: string; tgt: string; attrs: EdgeAttrs }> = [];
+    const fileNodes = new Map<string, Node[]>();
+    for (const [fp, slice] of composed) {
+      const fn: Node[] = [];
+      for (const n of slice.nodes) {
+        allNodes.set(n.id, n);
+        fn.push(n);
+      }
+      fileNodes.set(fp, fn);
+      for (const e of slice.edges) {
+        allEdges.push({ src: e.from, tgt: e.to, attrs: { kind: 'imports' } });
+      }
+    }
+    return {
+      hasNode: (id) => allNodes.has(id),
+      nodesForFile: (fp) => fileNodes.get(fp) ?? [],
+      getNodeAttributes: (id) => {
+        const n = allNodes.get(id);
+        if (!n) throw new Error(`No node: ${id}`);
+        return { kind: n.kind, filePath: n.file ?? id, displayName: n.name } as NodeAttrs;
+      },
+      forEachNode: (cb) => { for (const [id, n] of allNodes) cb(id, { kind: n.kind, filePath: n.file ?? id, displayName: n.name } as NodeAttrs); },
+      forEachOutEdge: (_id, _cb) => {},
+      inDegree: (_id) => 0,
+      get order() { return allNodes.size; },
+      get size() { return allEdges.length; },
+    };
+  }
+
+  private _overlayFor(worktreeId: string): Map<string, FileSlice | null> {
+    let m = this._overlays.get(worktreeId);
+    if (!m) { m = new Map(); this._overlays.set(worktreeId, m); }
+    return m;
+  }
+}
+
 /** The graph store singleton — owned by core-3. */
 export declare const graphStore: {
   createOverlay(worktreeId: string): Overlay;

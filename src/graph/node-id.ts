@@ -63,14 +63,43 @@ export function displayName(id: NodeId): string {
 // ---------------------------------------------------------------------------
 
 export function makeFileId(repoRelativePath: string): string {
-  return `file:${repoRelativePath}`
+  return `file:${repoRelativePath.replace(/\\/g, '/')}`
 }
 
-export function makeSymId(repoRelativePath: string, symbolName: string, suffix = 0): string {
+export function makeSymId(
+  repoRelativePath: string,
+  symbolName: string,
+  seen?: Map<string, number>,
+): string {
   const base = `sym:${repoRelativePath}#${symbolName}`
-  return suffix === 0 ? base : `${base}~${suffix}`
+  if (!seen) return base
+  const count = seen.get(base) ?? 0
+  seen.set(base, count + 1)
+  return count === 0 ? base : `${base}~${count}`
 }
 
 export function makeExtId(language: string, spec: string): string {
   return `ext:${language}:${spec}`
+}
+
+export type ParsedNodeId =
+  | { kind: 'file'; path: string }
+  | { kind: 'sym'; path: string; name: string }
+  | { kind: 'ext'; language: string; specifier: string }
+
+export function parseNodeId(id: string): ParsedNodeId | null {
+  if (id.startsWith('file:')) return { kind: 'file', path: id.slice(5) }
+  if (id.startsWith('sym:')) {
+    const rest = id.slice(4)
+    const hash = rest.indexOf('#')
+    if (hash < 0) return null
+    return { kind: 'sym', path: rest.slice(0, hash), name: rest.slice(hash + 1) }
+  }
+  if (id.startsWith('ext:')) {
+    const rest = id.slice(4)
+    const colon = rest.indexOf(':')
+    if (colon < 0) return null
+    return { kind: 'ext', language: rest.slice(0, colon), specifier: rest.slice(colon + 1) }
+  }
+  return null
 }

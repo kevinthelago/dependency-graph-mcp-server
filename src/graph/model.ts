@@ -79,6 +79,13 @@ export type AnalyzerEdgeKind = "import" | "reference";
 export type TargetType = "file" | "symbol" | "external";
 export type Resolution = "resolved" | "unresolved";
 
+/** File-granularity slice: a file node + its symbols + their edges. */
+export interface FileSlice {
+  filePath: string;
+  nodes: Node[];
+  edges: Edge[];
+}
+
 /** Edge representation produced by language analyzers and stored in overlays. */
 export interface Edge {
   from: string;
