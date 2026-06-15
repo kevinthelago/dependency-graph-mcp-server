@@ -73,7 +73,7 @@ export function runConformanceSuite(
           it('records unresolved includes in imports', async () => {
             const result = await analyzer.analyzeFile(fix.filePath, fix.content);
             const extSpecifiers = result.imports
-              .filter((i) => i.resolution === 'unresolved')
+              .filter((i) => i.isUnresolved)
               .map((i) => `ext:${i.specifier}`);
             for (const expected of fix.expectedExternalIncludes!) {
               expect(extSpecifiers).toContain(expected);

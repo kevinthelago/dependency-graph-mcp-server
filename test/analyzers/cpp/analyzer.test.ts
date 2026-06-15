@@ -106,7 +106,7 @@ enum Color { RED, GREEN, BLUE };
     const result = await analyzer.analyzeFile(filePath, content);
 
     const extSpecifiers = result.imports
-      .filter((i) => i.resolution === 'unresolved')
+      .filter((i) => i.isUnresolved)
       .map((i) => i.specifier);
     expect(extSpecifiers).toContain('stdio.h');
     expect(extSpecifiers).toContain('stdlib.h');

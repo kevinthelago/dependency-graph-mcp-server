@@ -91,7 +91,9 @@ export function buildIncludeEdges(
       imports.push({
         specifier: inc.rawPath,
         resolvedPath: resolved.resolvedPath,
-        resolution: 'resolved',
+        isExternal: false,
+        isUnresolved: false,
+        wildcard: false,
       });
     } else {
       edges.push({
@@ -104,7 +106,9 @@ export function buildIncludeEdges(
       });
       imports.push({
         specifier: inc.rawPath,
-        resolution: 'unresolved',
+        isExternal: true,
+        isUnresolved: true,
+        wildcard: false,
       });
     }
   }
