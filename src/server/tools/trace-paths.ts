@@ -1,11 +1,7 @@
 import { z } from 'zod';
-import type Graph from 'graphology';
+import type { GraphView } from '../../graph/store.js';
 import { resolveTarget, type TargetSpec } from '../../query/resolve.js';
 import { composedView } from '../../query/store.js';
-
-// Local type aliases — the stub composedView returns a raw graphology Graph.
-// When core lands, this will be replaced by the real GraphView interface.
-type GraphView = Graph;
 
 interface GNode {
   id: string;
@@ -93,7 +89,7 @@ function neighbors(
   // any — union of both, deduplicated
   const seen = new Set(graph.outNeighbors(node));
   for (const n of graph.inNeighbors(node)) seen.add(n);
-  return [...seen];
+  return [...seen] as string[];
 }
 
 /**
@@ -185,7 +181,8 @@ function serializeEdge(
     dst = traversedFrom;
   } else if (direction === 'any') {
     // Pick whichever direction the edge actually exists in
-    src = graph.directedEdges(traversedFrom, traversedTo).length > 0
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    src = (graph as any).directedEdges(traversedFrom, traversedTo).length > 0
       ? traversedFrom
       : traversedTo;
     dst = src === traversedFrom ? traversedTo : traversedFrom;
@@ -194,14 +191,18 @@ function serializeEdge(
     dst = traversedTo;
   }
 
-  const edgeKeys = graph.directedEdges(src, dst);
+  // directedEdges / getEdgeAttributes are graphology internals not on GraphView.
+  // The stub composedView returns a raw graphology Graph, so these exist at runtime.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const edgeKeys: string[] = (graph as any).directedEdges(src, dst) as string[];
   const firstEdge = edgeKeys[0];
   if (edgeKeys.length === 0 || firstEdge === undefined) {
     // Defensive fallback; shouldn't happen on a consistent graph
     return { from: src, to: dst, kind: 'import', targetType: 'file' };
   }
 
-  const attrs = graph.getEdgeAttributes(firstEdge) as Partial<GEdge>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const attrs = (graph as any).getEdgeAttributes(firstEdge) as Partial<GEdge>;
   const edge: PathEdge = {
     from: src,
     to: dst,

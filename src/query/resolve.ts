@@ -1,9 +1,7 @@
 // Stub implementation of resolveTarget — will be replaced by query-dependencies (qd-1).
 // Self-contained so it doesn't conflict with the shared query/types.ts.
 
-import type Graph from 'graphology';
-
-type GraphView = Graph;
+import type { GraphView } from '../graph/store.js';
 
 export type TargetSpec =
   | { nodeId: string }
