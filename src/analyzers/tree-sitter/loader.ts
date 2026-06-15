@@ -3,10 +3,14 @@
  *
  * Caches loaded Language instances by wasm path so each grammar is only
  * initialized once per process. Rust/C++/Obj-C reuse this same loader.
+ *
+ * web-tree-sitter uses `export = Parser` (CJS-style); esModuleInterop gives us
+ * the default import as the Parser class itself. Language is accessible as
+ * Parser.Language after init() — it is NOT a direct named export at runtime.
  */
 
-import { Parser } from 'web-tree-sitter'
-import { Language } from 'web-tree-sitter'
+import Parser from 'web-tree-sitter'
+import type { Language } from 'web-tree-sitter'
 import { existsSync } from 'fs'
 import { resolve, join, dirname } from 'path'
 import { fileURLToPath } from 'url'
@@ -33,7 +37,7 @@ export async function loadGrammar(wasmPath: string): Promise<Language> {
   if (cached) return cached
 
   await ensureInit()
-  const lang = await Language.load(abs)
+  const lang = await Parser.Language.load(abs)
   cache.set(abs, lang)
   return lang
 }

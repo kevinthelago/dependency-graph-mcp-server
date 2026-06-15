@@ -12,7 +12,7 @@
  * not tracked.
  */
 
-import type { Tree, Node as SyntaxNode } from 'web-tree-sitter'
+import type { Tree, SyntaxNode } from 'web-tree-sitter'
 import type { Edge, ImportRef } from '../types.js'
 import { fileId, symbolId } from '../../graph/node-id.js'
 import type { QueryRunner } from '../tree-sitter/query-runner.js'
