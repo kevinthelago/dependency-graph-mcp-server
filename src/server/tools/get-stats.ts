@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { registerTool } from '../envelope.js';
 import { composedView } from '../../graph/composed-view.js';
 
 // Structural type for the graphology graph view returned by composedView.
@@ -180,10 +179,10 @@ function countFileSCCs(view: GraphView): number {
   return count;
 }
 
-registerTool({
+export const statsToolDef = {
   name: 'get_stats',
   description:
     'Returns aggregate statistics for the current worktree dependency graph: node/edge counts, per-language breakdown, cycle count (SCCs of size > 1 among file nodes), and top fan-in hotspots.',
   inputSchema: GetStatsInput,
   handler: getStatsHandler,
-});
+} as const;

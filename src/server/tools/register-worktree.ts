@@ -24,7 +24,6 @@ export function makeRegisterWorktreeTool(
     async handler(input: Input) {
       const entry = await registry.register({
         worktreeRoot: input.worktreeRoot,
-        baseBranch: input.baseBranch,
       });
 
       const sessionKey = input.sessionKey ?? entry.worktreeRoot;

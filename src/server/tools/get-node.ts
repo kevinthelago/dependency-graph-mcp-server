@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { registerTool } from '../envelope.js';
 import { composedView } from '../../graph/composed-view.js';
 import { resolveTarget } from '../../query/resolve.js';
 
@@ -68,7 +67,7 @@ export async function getNodeHandler(
     return { error: 'no_worktree' as const, message: 'No worktree registered for this session.' };
   }
 
-  const resolved = resolveTarget(view, input.target) as
+  const resolved = resolveTarget(view as any, input.target) as
     | { id: string }
     | { candidates: string[] }
     | { notFound: true };
@@ -91,10 +90,10 @@ export async function getNodeHandler(
   };
 }
 
-registerTool({
+export const getNodeToolDef = {
   name: 'get_node',
   description:
     'Returns details and degree information for a single node in the dependency graph. Accepts a stable node id, a file path, or a file path + symbol name. Returns not-found when the target does not exist, or candidates when a path+symbol is ambiguous.',
   inputSchema: GetNodeInput,
   handler: getNodeHandler,
-});
+} as const;

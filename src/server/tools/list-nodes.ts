@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { registerTool } from '../envelope.js';
 import { composedView } from '../../graph/composed-view.js';
 
 interface GraphView {
@@ -118,10 +117,10 @@ export async function listNodesHandler(
   return result;
 }
 
-registerTool({
+export const listNodesToolDef = {
   name: 'list_nodes',
   description:
     'Lists nodes in the dependency graph with optional filtering by path prefix, language, and node kind. Supports cursor-based pagination. Results are deterministically ordered by node id.',
   inputSchema: ListNodesInput,
   handler: listNodesHandler,
-});
+} as const;

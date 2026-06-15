@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { registerTool } from '../envelope.js';
 import { composedView } from '../../graph/composed-view.js';
 import { resolveTarget } from '../../query/resolve.js';
 
@@ -165,7 +164,7 @@ export async function getNeighborsHandler(
     return { error: 'no_worktree' as const, message: 'No worktree registered for this session.' };
   }
 
-  const resolved = resolveTarget(view, input.target) as
+  const resolved = resolveTarget(view as any, input.target) as
     | { id: string }
     | { candidates: string[] }
     | { notFound: true };
@@ -225,10 +224,10 @@ export async function getNeighborsHandler(
   };
 }
 
-registerTool({
+export const getNeighborsToolDef = {
   name: 'get_neighbors',
   description:
     'Returns the immediate (1-hop) in and/or out neighbors of a node in the dependency graph. Groups multiple edges between the same pair of nodes. Truncates when the neighbor count exceeds the limit.',
   inputSchema: GetNeighborsInput,
   handler: getNeighborsHandler,
-});
+} as const;
