@@ -5,3 +5,5 @@ tsc-output.txt
 vitest-output.txt
 test-output.txt
 coverage/
+vendor/grammars/
+.cache/

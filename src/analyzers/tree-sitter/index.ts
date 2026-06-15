@@ -1,15 +1,15 @@
 /**
- * STUB — replaced by analyze-python (py-1) when it lands on develop.
+ * Tree-sitter scaffold — public API.
  *
- * This file exists only so that vitest can resolve the import path and apply
- * vi.mock() in test/analyzers/objc/conformance.test.ts. Real tests mock this
- * entire module; no function here runs in tests.
- *
- * TSNode/TSTree/GrammarHandle are also exported here so the Rust analyzer
- * test helper can type the native tree-sitter wrapper without a separate stub.
+ * Exports the WASM-based grammar loader and query runner (py-1 implementation),
+ * plus the TSNode/TSTree/GrammarHandle type stubs used by Rust/C++ test helpers.
  */
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
+// ── WASM scaffold (py-1) ──────────────────────────────────────────────────────
+export { loadGrammar, resolveGrammarPath, createParser } from './loader.js'
+export { QueryRunner } from './query-runner.js'
+export type { CaptureResult, PatternMatch } from './query-runner.js'
+export type { ResolverHook, ResolveResult } from './resolver-hook.js'
 
 // ── Types for native grammar adapters used in tests ──────────────────────────
 
@@ -37,22 +37,4 @@ export interface TSTree {
 
 export interface GrammarHandle {
   parse(text: string): TSTree
-}
-
-// ── Runtime stubs (py-1 replaces these) ──────────────────────────────────────
-
-export async function loadGrammar(_name: string): Promise<GrammarHandle> {
-  throw new Error('tree-sitter scaffold (py-1) not yet installed — inject a GrammarHandle in tests');
-}
-
-export function parseSource(_lang: unknown, _text: string): unknown {
-  throw new Error('tree-sitter scaffold (py-1) not yet installed');
-}
-
-export function runQuery(
-  _tree: unknown,
-  _lang: unknown,
-  _query: string,
-): unknown[] {
-  throw new Error('tree-sitter scaffold (py-1) not yet installed');
 }

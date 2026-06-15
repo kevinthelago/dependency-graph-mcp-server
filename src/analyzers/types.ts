@@ -1,34 +1,81 @@
 /**
- * LanguageAnalyzer interface per contracts/language-analyzer.md
- * Owned by core-5; stub for worktree-view compilation.
+ * LanguageAnalyzer interface — contract owner: core (core-5).
+ * Scaffolded here so this stream can compile; core will own the authoritative version.
+ * See contracts/language-analyzer.md and contracts/graph-model.md.
  */
 
-import type { Node, Edge } from "../graph/model.js";
+export type SymbolKind =
+  | 'function'
+  | 'class'
+  | 'variable'
+  | 'interface'
+  | 'type'
+  | 'enum'
+  | 'module'
+  | 'macro'
+  | 'protocol'
+  | 'struct'
+  | 'trait'
+
+export type Language = 'ts' | 'js' | 'python' | 'rust' | 'c' | 'cpp' | 'objc' | null
+
+export interface GraphNode {
+  id: string
+  kind: 'file' | 'symbol' | 'external'
+  language: Language
+  name: string
+  symbolKind?: SymbolKind
+  /** Repo-relative path; only on symbol nodes. */
+  file?: string
+  loc?: { line: number; col: number }
+  exported?: boolean
+}
+
+export interface Edge {
+  from: string
+  to: string
+  kind: 'import' | 'reference'
+  targetType: 'file' | 'symbol' | 'external'
+  typeOnly?: boolean
+  wildcard?: boolean
+  resolution: 'resolved' | 'unresolved'
+  loc?: { line: number; col: number }
+}
 
 export interface ImportRef {
-  specifier: string;
-  resolvedPath?: string;
-  resolution: "resolved" | "unresolved";
+  specifier: string
+  /** Repo-relative path if resolved to a project file. */
+  resolvedPath?: string
+  isExternal: boolean
+  isUnresolved: boolean
+  wildcard: boolean
+}
+
+export interface ExternalRef {
+  /** Opaque id in the form `ext:<language>:<spec>`. */
+  id: string
 }
 
 export interface AnalysisFragment {
-  file: Node;
-  symbols: Node[];
-  edges: Edge[];
-  imports: ImportRef[];
+  file: GraphNode
+  symbols: GraphNode[]
+  edges: Edge[]
+  imports: ImportRef[]
 }
 
 export interface ProjectContext {
-  repoRoot: string;
-  config: Record<string, unknown>;
-  resolveExternal(spec: string): { language: string; specifier: string } | null;
+  repoRoot: string
+  /** Language-specific config — tsconfig path, source roots, compile_commands, etc. */
+  config: Record<string, unknown>
+  resolveExternal(spec: string): ExternalRef | null
 }
 
 export interface LanguageAnalyzer {
-  readonly id: string;
-  readonly extensions: string[];
-  readonly version: string;
-  init(project: ProjectContext): Promise<void>;
-  analyzeFile(path: string, text: string): Promise<AnalysisFragment>;
-  dispose(): Promise<void>;
+  readonly id: string
+  readonly extensions: string[]
+  /** Analyzer version — used as part of the parse-cache key. */
+  readonly version: string
+  init(project: ProjectContext): Promise<void>
+  analyzeFile(path: string, text: string): Promise<AnalysisFragment>
+  dispose(): Promise<void>
 }

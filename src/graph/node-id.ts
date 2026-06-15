@@ -4,8 +4,10 @@ export function fileId(absolutePath: string): NodeId {
   return `file:${absolutePath}`;
 }
 
-export function symbolId(absolutePath: string, symbolName: string): NodeId {
-  return `sym:${absolutePath}#${symbolName}`;
+/** @param disambig  Optional collision suffix (0 = no suffix, 1+ appends `~N`). */
+export function symbolId(absolutePath: string, symbolName: string, disambig = 0): NodeId {
+  const suffix = disambig > 0 ? `~${disambig}` : '';
+  return `sym:${absolutePath}#${symbolName}${suffix}`;
 }
 
 export function externalId(packageSpec: string): NodeId {
@@ -46,7 +48,7 @@ export function containingFileId(id: NodeId): NodeId | null {
 export function displayName(id: NodeId): string {
   if (id.startsWith("file:")) {
     const path = id.slice(5);
-    return path.split(/[\\/]/).pop() ?? path;
+    return path.split(/[\/]/).pop() ?? path;
   }
   if (id.startsWith("sym:")) {
     const sym = nodeSymbolName(id);
