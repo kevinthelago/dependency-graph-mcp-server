@@ -1,4 +1,4 @@
-import type { TSNode } from '../tree-sitter/index.js'
+import type { TreeNode } from '../tree-sitter/index.js'
 import type { SymbolKind, Loc } from '../../graph/model.js'
 import type { FlatUse } from './resolver.js'
 
@@ -35,7 +35,7 @@ const ITEM_SYMBOL_KINDS: Record<string, SymbolKind> = {
  * Extract top-level symbols (excluding mod items and use declarations).
  * v1: top-level only, no class members.
  */
-export function extractSymbols(root: TSNode): ExtractedSymbol[] {
+export function extractSymbols(root: TreeNode): ExtractedSymbol[] {
   const results: ExtractedSymbol[] = []
   const seen = new Map<string, number>()
 
@@ -62,7 +62,7 @@ export function extractSymbols(root: TSNode): ExtractedSymbol[] {
 }
 
 /** Extract `mod foo;` and inline `mod foo { ... }` declarations. */
-export function extractMods(root: TSNode): ExtractedMod[] {
+export function extractMods(root: TreeNode): ExtractedMod[] {
   const results: ExtractedMod[] = []
 
   for (const child of root.namedChildren) {
@@ -84,7 +84,7 @@ export function extractMods(root: TSNode): ExtractedMod[] {
 }
 
 /** Extract and flatten all `use` declarations at the top level. */
-export function extractUses(root: TSNode): ExtractedUse[] {
+export function extractUses(root: TreeNode): ExtractedUse[] {
   const results: ExtractedUse[] = []
 
   for (const child of root.namedChildren) {
@@ -104,7 +104,7 @@ export function extractUses(root: TSNode): ExtractedUse[] {
 }
 
 /** Extract inline `pub use` re-exports. */
-export function extractReexports(root: TSNode): ExtractedUse[] {
+export function extractReexports(root: TreeNode): ExtractedUse[] {
   const results: ExtractedUse[] = []
 
   for (const child of root.namedChildren) {
@@ -128,19 +128,19 @@ export function extractReexports(root: TSNode): ExtractedUse[] {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function getItemName(node: TSNode): string | null {
+function getItemName(node: TreeNode): string | null {
   return node.childForFieldName('name')?.text ?? null
 }
 
-function hasVisibility(node: TSNode): boolean {
-  return node.children.some((c) => c.type === 'visibility_modifier')
+function hasVisibility(node: TreeNode): boolean {
+  return node.children.some((c: TreeNode) => c.type === 'visibility_modifier')
 }
 
 /**
  * Flatten a use argument node into a list of FlatUse entries.
  * Handles all tree-sitter-rust use_clause variants.
  */
-function flattenUseArg(node: TSNode, prefix: string[]): FlatUse[] {
+function flattenUseArg(node: TreeNode, prefix: string[]): FlatUse[] {
   switch (node.type) {
     case 'identifier':
     case 'self':
@@ -193,7 +193,7 @@ function flattenUseArg(node: TSNode, prefix: string[]): FlatUse[] {
 }
 
 /** Convert a scoped_identifier / identifier node to a flat string[] of segments. */
-function nodeToSegments(node: TSNode): string[] {
+function nodeToSegments(node: TreeNode): string[] {
   if (node.type === 'identifier' || node.type === 'self' || node.type === 'super' || node.type === 'crate') {
     return [node.text]
   }

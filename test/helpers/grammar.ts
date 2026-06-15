@@ -2,13 +2,13 @@
 // Production code uses web-tree-sitter via the py-1 scaffold.
 
 import { createRequire } from 'node:module'
-import type { GrammarHandle, TSTree } from '../../src/analyzers/tree-sitter/index.js'
+import type { GrammarParser, ParsedTree } from '../../src/analyzers/tree-sitter/index.js'
 
 const require = createRequire(import.meta.url)
 
-let grammarHandle: GrammarHandle | null = null
+let grammarHandle: GrammarParser | null = null
 
-export async function getRustGrammarHandle(): Promise<GrammarHandle> {
+export async function getRustGrammarHandle(): Promise<GrammarParser> {
   if (grammarHandle != null) return grammarHandle
 
   // Dynamic require for native CJS modules
@@ -21,9 +21,9 @@ export async function getRustGrammarHandle(): Promise<GrammarHandle> {
   parser.setLanguage(RustGrammar)
 
   grammarHandle = {
-    parse(text: string): TSTree {
-      // tree-sitter native's SyntaxNode is structurally compatible with TSNode
-      return parser.parse(text) as TSTree
+    parse(text: string): ParsedTree {
+      // tree-sitter native's SyntaxNode is structurally compatible with TreeNode
+      return parser.parse(text) as unknown as ParsedTree
     },
   }
 

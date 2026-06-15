@@ -1,6 +1,5 @@
 import type { LanguageAnalyzer, ProjectContext, AnalysisFragment } from '../types.js'
-import type { GrammarHandle } from '../tree-sitter/index.js'
-import { loadGrammar } from '../tree-sitter/index.js'
+import type { GrammarParser } from '../tree-sitter/index.js'
 import type { Node, Edge } from '../../graph/model.js'
 import { makeFileId, makeSymId, makeExtId } from '../../graph/node-id.js'
 import { loadCargoConfig, type CargoConfig } from './cargo.js'
@@ -29,7 +28,7 @@ export class RustAnalyzer implements LanguageAnalyzer {
   readonly extensions = ['.rs']
   readonly version = ANALYZER_VERSION
 
-  private grammar: GrammarHandle | null = null
+  private grammar: GrammarParser | null = null
   private cargo: CargoConfig | null = null
   private repoRoot = ''
 
@@ -37,11 +36,13 @@ export class RustAnalyzer implements LanguageAnalyzer {
    * @param grammarFactory - optional override for tests; defaults to loadGrammar('rust')
    */
   constructor(
-    private readonly grammarFactory?: () => Promise<GrammarHandle>,
+    private readonly grammarFactory?: () => Promise<GrammarParser>,
   ) {}
 
   async init(project: ProjectContext): Promise<void> {
-    const factory = this.grammarFactory ?? (() => loadGrammar('rust'))
+    const factory = this.grammarFactory ?? ((): Promise<GrammarParser> => {
+      throw new Error('Rust WASM grammar not yet available; provide a grammarFactory in tests')
+    })
     this.grammar = await factory()
     this.repoRoot = project.repoRoot
     this.cargo = await loadCargoConfig(project.repoRoot)
