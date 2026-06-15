@@ -1,10 +1,5 @@
 import type { LanguageAnalyzer } from "./types.js";
 
-export interface AnalyzerRegistry {
-  all(): LanguageAnalyzer[];
-  forExtension(ext: string): LanguageAnalyzer | undefined;
-}
-
 export declare function getAnalyzerForFile(filePath: string): LanguageAnalyzer | undefined;
 export declare function registerAnalyzer(analyzer: LanguageAnalyzer): void;
 

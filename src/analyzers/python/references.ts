@@ -13,7 +13,7 @@
  */
 
 import type { Tree, Node } from 'web-tree-sitter'
-import type { GraphNode, Edge, ImportRef } from '../types.js'
+import type { Edge, ImportRef } from '../types.js'
 import { fileId, symbolId } from '../../graph/node-id.js'
 import type { QueryRunner } from '../tree-sitter/index.js'
 
