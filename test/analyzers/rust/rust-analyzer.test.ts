@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { RustAnalyzer } from '../../../src/analyzers/rust/index.js'
@@ -14,6 +15,11 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const FIXTURES = path.join(__dirname, '../../../fixtures/rust')
 
+// Skip the entire suite when native tree-sitter isn't built for this platform.
+const _req = createRequire(import.meta.url)
+let _nativeAvailable = false
+try { _req('tree-sitter'); _nativeAvailable = true } catch { /* no native build */ }
+
 function fixtureCtx(fixture: string): ProjectContext {
   return {
     repoRoot: path.join(FIXTURES, fixture),
@@ -26,12 +32,12 @@ function readFixture(fixture: string, ...parts: string[]): string {
   return readFileSync(path.join(FIXTURES, fixture, ...parts), 'utf-8')
 }
 
-describe('RustAnalyzer', () => {
+describe.skipIf(!_nativeAvailable)('RustAnalyzer', () => {
   let analyzer: RustAnalyzer
 
   beforeAll(async () => {
     const grammar = await getRustGrammarHandle()
-    analyzer = new RustAnalyzer(() => Promise.resolve(grammar))
+    analyzer = new RustAnalyzer(() => Promise.resolve(grammar!))
   })
 
   // -------------------------------------------------------------------------
