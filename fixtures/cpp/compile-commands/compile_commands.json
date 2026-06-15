@@ -1,0 +1,7 @@
+[
+  {
+    "directory": "__FIXTURE_DIR__",
+    "command": "gcc -I__FIXTURE_DIR__/include -DDEBUG=1 -c main.c",
+    "file": "__FIXTURE_DIR__/main.c"
+  }
+]
