@@ -60,9 +60,10 @@ export class ObjcAnalyzer implements LanguageAnalyzer {
     const wasmPath = resolveGrammarPath('tree-sitter-objc');
     this.grammar = await loadGrammar(wasmPath);
     this.qr = new QueryRunner(this.grammar);
+    const includeDirs = project.config?.['configuredIncludeDirs'] as string[] | undefined;
     this.resolver = new IncludeResolver({
-      repoRoot: project.repoRoot,
-      config: project.config,
+      projectRoot: project.repoRoot,
+      ...(includeDirs ? { includeDirs } : {}),
     }) as unknown as IIncludeResolver;
   }
 
