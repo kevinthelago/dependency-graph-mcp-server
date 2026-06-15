@@ -1,5 +1,4 @@
-import type { Node, Edge } from '../types.js';
-import type { CaptureResult, IIncludeResolver } from './types.js';
+import type { Node, Edge, CaptureResult, IIncludeResolver } from './types.js';
 
 export interface ImportExtractionResult {
   edges: Edge[];

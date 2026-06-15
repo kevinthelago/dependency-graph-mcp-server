@@ -11,7 +11,9 @@
  * .mm files: same parsing, best-effort (Obj-C++ extension syntax silently ignored).
  */
 
-import type { LanguageAnalyzer, AnalysisFragment, ProjectContext, Node } from '../types.js';
+// Local type definitions until src/analyzers/types.ts (core-5) lands on develop.
+// When it does: replace this import with `from '../types.js'`.
+import type { LanguageAnalyzer, AnalysisFragment, ProjectContext, Node } from './types.js';
 // py-1 — will resolve once the tree-sitter scaffold lands on develop
 import { loadGrammar, parseSource, runQuery } from '../tree-sitter/index.js';
 // cpp-1 — will resolve once the include resolver lands on develop

@@ -1,5 +1,4 @@
-import type { Node, Edge } from '../types.js';
-import type { CaptureResult } from './types.js';
+import type { Node, Edge, CaptureResult } from './types.js';
 
 export interface SymbolExtractionResult {
   symbols: Node[];
