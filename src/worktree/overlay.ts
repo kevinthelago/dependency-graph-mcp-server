@@ -71,8 +71,8 @@ export async function seedOverlay(opts: SeedOverlayOptions): Promise<void> {
       );
 
       overlay.applyFile(filePath, {
-        filePath,
-        nodes: [fragment.file, ...fragment.symbols],
+        file: fragment.file,
+        symbols: fragment.symbols,
         edges: fragment.edges,
       });
     }),
