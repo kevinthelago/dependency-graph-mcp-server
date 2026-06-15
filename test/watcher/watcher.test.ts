@@ -127,7 +127,7 @@ describe('WorktreeWatcher (integration)', () => {
     await wait(100);
 
     await unlink(target);
-    await wait(200);
+    await wait(400); // Windows fs.watch delivers unlink events with higher latency
 
     const allEvents = batches.flat();
     expect(allEvents).toContainEqual(expect.objectContaining({ type: 'unlink', path: target }));
