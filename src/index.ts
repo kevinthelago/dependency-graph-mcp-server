@@ -5,3 +5,7 @@ export * from "./query/types.js";
 export * from "./query/resolver.js";
 export * from "./query/traversal.js";
 export * from "./server/tools/get-blast-radius.js";
+export * from './watcher/index.js';
+export * from './orchestrator/incremental.js';
+export * from './orchestrator/reresolve.js';
+export * from './orchestrator/invalidation.js';
