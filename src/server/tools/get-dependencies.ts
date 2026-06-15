@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { resolveTarget } from "../../query/resolver.js";
+import { resolveTarget, parseStringTarget } from "../../query/resolver.js";
 import { forwardBfs } from "../../query/traverse.js";
 import type { ToolContext, TraversalEntry } from "../../query/types.js";
 import type { NodeId } from "../../graph/model.js";
@@ -72,9 +72,9 @@ export async function getDependencies(
 ): Promise<GetDependenciesResult | NotFoundResult> {
   const { view } = ctx;
 
-  const resolved = resolveTarget(view, input.target);
-  if (resolved.kind === "notFound") return notFound();
-  if (resolved.kind === "candidates") return notFound(resolved.items);
+  const resolved = resolveTarget(view, parseStringTarget(input.target));
+  if ('notFound' in resolved) return notFound();
+  if ('candidates' in resolved) return notFound(resolved.candidates);
 
   const bfsResult = forwardBfs(view, resolved.id, {
     maxDepth: input.depth,

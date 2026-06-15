@@ -8,7 +8,7 @@ import {
   type GetDependenciesInput,
 } from "../../../src/server/tools/get-dependencies.js";
 import { forwardBfs } from "../../../src/query/traverse.js";
-import { resolveTarget } from "../../../src/query/resolver.js";
+import { resolveTarget, parseStringTarget } from "../../../src/query/resolver.js";
 import type { ToolContext } from "../../../src/query/types.js";
 
 // ---------------------------------------------------------------------------
@@ -75,28 +75,28 @@ describe("resolveTarget", () => {
   );
 
   it("resolves by raw node id", () => {
-    const r = resolveTarget(view, FILE_A);
-    expect(r).toMatchObject({ kind: "found", id: FILE_A });
+    const r = resolveTarget(view, parseStringTarget(FILE_A));
+    expect(r).toMatchObject({ id: FILE_A });
   });
 
   it("returns notFound for unknown node id", () => {
-    const r = resolveTarget(view, "file:/repo/src/missing.ts");
-    expect(r.kind).toBe("notFound");
+    const r = resolveTarget(view, parseStringTarget("file:/repo/src/missing.ts"));
+    expect('notFound' in r).toBe(true);
   });
 
   it("resolves by file path suffix", () => {
-    const r = resolveTarget(view, "src/a.ts");
-    expect(r).toMatchObject({ kind: "found", id: FILE_A });
+    const r = resolveTarget(view, parseStringTarget("src/a.ts"));
+    expect(r).toMatchObject({ id: FILE_A });
   });
 
   it("resolves path#symbol shorthand", () => {
-    const r = resolveTarget(view, "/repo/src/a.ts#foo");
-    expect(r).toMatchObject({ kind: "found", id: SYM_FOO });
+    const r = resolveTarget(view, parseStringTarget("/repo/src/a.ts#foo"));
+    expect(r).toMatchObject({ id: SYM_FOO });
   });
 
   it("returns notFound for unknown symbol", () => {
-    const r = resolveTarget(view, "/repo/src/a.ts#bar");
-    expect(r.kind).toBe("notFound");
+    const r = resolveTarget(view, parseStringTarget("/repo/src/a.ts#bar"));
+    expect('notFound' in r).toBe(true);
   });
 });
 

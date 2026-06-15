@@ -19,6 +19,7 @@ describe('reference edges — simple fixture', () => {
     analyzer = new TypeScriptAnalyzer();
     await analyzer.init(makeCtx(SIMPLE_ROOT));
 
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const fs = require('node:fs');
     const mainPath = path.join(SIMPLE_ROOT, 'src', 'main.ts');
     mainFrag = await analyzer.analyzeFile(mainPath, fs.readFileSync(mainPath, 'utf8'));
@@ -58,6 +59,7 @@ describe('reference edges — barrel fixture', () => {
     analyzer = new TypeScriptAnalyzer();
     await analyzer.init(makeCtx(BARREL_ROOT));
 
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const fs = require('node:fs');
     // Analyze all files so the type-checker knows them all
     for (const f of ['src/a.ts', 'src/b.ts', 'src/index.ts']) {

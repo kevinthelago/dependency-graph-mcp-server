@@ -6,7 +6,7 @@ import { fileId, symbolId } from "../../../src/graph/node-id.js";
 import {
   detectCycles,
   type DetectCyclesInput,
-  type CycleGroup,
+
 } from "../../../src/server/tools/detect-cycles.js";
 import type { ToolContext } from "../../../src/query/types.js";
 
@@ -50,13 +50,6 @@ function run(
   ctx: ToolContext,
 ): ReturnType<typeof detectCycles> {
   return detectCycles({ granularity: "module", maxGroupSize: 50, ...input }, ctx);
-}
-
-/** Sort groups for stable comparison in tests. */
-function sortedGroups(groups: CycleGroup[]): CycleGroup[] {
-  return groups
-    .slice()
-    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 }
 
 // ---------------------------------------------------------------------------

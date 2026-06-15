@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { GraphView } from '../../graph/store.js';
-import { resolveTarget, type TargetSpec } from '../../query/resolve.js';
+import { resolveTarget, type ResolveTarget } from '../../query/resolve.js';
 import { composedView } from '../../query/store.js';
 
 interface GNode {
@@ -22,14 +22,14 @@ interface GEdge {
 
 // ─── Input schema ─────────────────────────────────────────────────────────────
 
-const TargetSpecSchema = z.union([
+const ResolveTargetSchema = z.union([
   z.object({ nodeId: z.string() }),
   z.object({ path: z.string(), symbol: z.string().optional() }),
 ]);
 
 export const inputSchema = z.object({
-  from: TargetSpecSchema,
-  to: TargetSpecSchema,
+  from: ResolveTargetSchema,
+  to: ResolveTargetSchema,
   /** Follow edge direction (forward = from depends on to). */
   direction: z.enum(['forward', 'reverse', 'any']).default('forward'),
   /** Number of distinct shortest paths to return. */
@@ -237,9 +237,9 @@ export async function handleTracePaths(
 ): Promise<TracePathsResult> {
   const graph = composedView(ctx.worktreeId) as unknown as GraphView;
 
-  // Cast needed: Zod infers `symbol?: string | undefined` but TargetSpec uses exactOptionalPropertyTypes.
-  const fromResult = resolveTarget(graph, input.from as TargetSpec);
-  const toResult = resolveTarget(graph, input.to as TargetSpec);
+  // Cast needed: Zod infers `symbol?: string | undefined` but ResolveTarget uses exactOptionalPropertyTypes.
+  const fromResult = resolveTarget(graph, input.from as ResolveTarget);
+  const toResult = resolveTarget(graph, input.to as ResolveTarget);
 
   // Unresolvable endpoints — return not-found; candidates win over notFound
   if ('candidates' in fromResult) return { found: false, candidates: fromResult.candidates };

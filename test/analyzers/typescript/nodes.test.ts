@@ -100,6 +100,7 @@ export const c = 1;
 
   it('parses the simple fixture correctly', () => {
     // Read from disk to validate against a real file
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const fs = require('node:fs');
     const p = path.join(FIXTURE_ROOT, 'src/utils.ts');
     const text = fs.readFileSync(p, 'utf8');

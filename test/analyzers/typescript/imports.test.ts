@@ -88,6 +88,7 @@ describe('extractImports', () => {
 
   it('resolves path aliases', () => {
     // Uses real tsconfig from paths-alias fixture
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const fs = require('node:fs');
     const tsconfigPath = path.join(PATHS_ROOT, 'tsconfig.json');
     const readResult = ts.readConfigFile(tsconfigPath, ts.sys.readFile);
