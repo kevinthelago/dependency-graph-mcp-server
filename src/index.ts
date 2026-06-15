@@ -5,7 +5,7 @@ export * from "./graph/store.js";
 
 // Overlay store (core stream: worktree + base index support)
 export { OverlayStore } from "./graph/overlay-store.js";
-// Note: FileSlice from overlay-store differs from model.ts FileSlice — import directly when needed
+export type { WorktreeId } from "./graph/overlay-store.js";
 
 // Query layer (query-dependencies stream)
 export * from "./query/types.js";
@@ -17,16 +17,15 @@ export * from "./server/tools/get-blast-radius.js";
 
 // Parse cache
 export { ParseCache, contentHash, makeCacheKey } from "./cache/index.js";
-export type { CacheKey } from "./cache/index.js";
+export type { CacheKey, ParseCacheInterface } from "./cache/index.js";
 
-// Analyzer interface — export only names not already in graph/model.js
+// Analyzer interface
 export type {
   LanguageAnalyzer,
   ProjectContext,
   AnalysisFragment,
   ImportRef,
   ExternalRef,
-  GraphNode,
 } from "./analyzers/types.js";
 export { AnalyzerRegistry } from "./analyzers/registry.js";
 

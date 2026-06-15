@@ -48,8 +48,10 @@ export function containingFileId(id: NodeId): NodeId | null {
 export const makeFileId = fileId;
 /** @deprecated Use symbolId() */
 export const makeSymId = symbolId;
-/** @deprecated Use externalId() */
-export const makeExtId = externalId;
+/** @deprecated Use externalId(). Takes (language, specifier) → ext:language:specifier */
+export function makeExtId(language: string, specifier: string): NodeId {
+  return `ext:${language}:${specifier}`;
+}
 
 /** Returns a short human-readable label for display purposes. */
 export function displayName(id: NodeId): string {

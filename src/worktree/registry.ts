@@ -1,6 +1,7 @@
 import { resolve, relative, isAbsolute } from "node:path";
 import { realpath } from "node:fs/promises";
 import type { WorktreeId } from "../graph/store.js";
+import { MemoryOverlay, type Overlay } from "../graph/store.js";
 
 export interface WorktreeEntry {
   worktreeId: WorktreeId;
@@ -9,6 +10,8 @@ export interface WorktreeEntry {
   baseBranch: string;
   /** ISO timestamp of last registration/refresh. */
   registeredAt: string;
+  /** Per-worktree file-level overlay. */
+  overlay: Overlay;
 }
 
 let nextId = 1;
@@ -71,6 +74,7 @@ export class WorktreeRegistry {
       repoRoot: this.repoRoot,
       baseBranch: opts.baseBranch ?? this.defaultBase,
       registeredAt: new Date().toISOString(),
+      overlay: new MemoryOverlay(),
     };
     this.entries.set(worktreeId, entry);
     this.byPath.set(realRoot, worktreeId);

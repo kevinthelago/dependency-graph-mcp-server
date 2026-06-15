@@ -91,5 +91,18 @@ function resolveFileSymbol(
   if (view.hasNode(symNodeId)) {
     return { id: symNodeId };
   }
+
+  // No exact match — scan for symbols in this file whose name starts with symbolName
+  // (handles overloaded/mangled names like foo~1, foo~2).
+  const symPrefix = `sym:${containingFilePath}#${symbolName}`;
+  const allNodes = view.nodes?.() ?? [];
+  const candidates = allNodes.filter((id) => id.startsWith(symPrefix));
+  if (candidates.length === 1) {
+    return { id: candidates[0] as NodeId };
+  }
+  if (candidates.length > 1) {
+    return { candidates: candidates as NodeId[] };
+  }
+
   return { notFound: true };
 }
