@@ -5,11 +5,10 @@
 import * as fs from "node:fs/promises";
 import * as nodePath from "node:path";
 import * as os from "node:os";
-import type { Overlay } from "../../src/graph/store.js";
-import type { FileSlice } from "../../src/graph/store.js";
+import type { Overlay, OverlaySlice } from "../../src/graph/store.js";
 import type { Node } from "../../src/graph/model.js";
 import type { LanguageAnalyzer, AnalysisFragment, ProjectContext } from "../../src/analyzers/types.js";
-import type { ParseCache } from "../../src/cache/index.js";
+import type { ICacheStore, CacheKey } from "../../src/cache/index.js";
 
 /** Create a temporary directory and return its path. Cleaned up by the caller. */
 export async function makeTempDir(): Promise<string> {
@@ -25,10 +24,10 @@ export async function writeFile(root: string, relPath: string, content: string):
 
 /** A minimal in-memory Overlay implementation for testing. */
 export class MemoryOverlay implements Overlay {
-  private readonly applied = new Map<string, FileSlice>();
+  private readonly applied = new Map<string, OverlaySlice>();
   private readonly deleted = new Set<string>();
 
-  applyFile(filePath: string, slice: FileSlice): void {
+  applyFile(filePath: string, slice: OverlaySlice): void {
     this.deleted.delete(filePath);
     this.applied.set(filePath, slice);
   }
@@ -55,7 +54,7 @@ export class MemoryOverlay implements Overlay {
     return this.deleted.has(filePath);
   }
 
-  getSlice(filePath: string): FileSlice | undefined {
+  getSlice(filePath: string): OverlaySlice | undefined {
     return this.applied.get(filePath);
   }
 
@@ -69,23 +68,27 @@ export class MemoryOverlay implements Overlay {
 }
 
 /** A no-op parse cache for testing. */
-export class NoopCache implements ParseCache {
-  get(_key: string): undefined {
+export class NoopCache implements ICacheStore {
+  get(_key: CacheKey): undefined {
     return undefined;
   }
-  put(_key: string, _fragment: AnalysisFragment): void {}
+  put(_key: CacheKey, _fragment: AnalysisFragment): void {}
 }
 
 /** An in-memory cache for testing cache-first behaviour. */
-export class MemoryCache implements ParseCache {
+export class MemoryCache implements ICacheStore {
   private readonly store = new Map<string, AnalysisFragment>();
 
-  get(key: string): AnalysisFragment | undefined {
-    return this.store.get(key);
+  private static key(k: CacheKey): string {
+    return `${k.analyzerId}:${k.analyzerVersion}:${k.grammarVersion}:${k.contentHash}`;
   }
 
-  put(key: string, fragment: AnalysisFragment): void {
-    this.store.set(key, fragment);
+  get(key: CacheKey): AnalysisFragment | undefined {
+    return this.store.get(MemoryCache.key(key));
+  }
+
+  put(key: CacheKey, fragment: AnalysisFragment): void {
+    this.store.set(MemoryCache.key(key), fragment);
   }
 
   size(): number {

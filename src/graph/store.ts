@@ -1,7 +1,10 @@
 import { DirectedGraph } from "graphology";
-import type { NodeAttrs, EdgeAttrs, NodeId, Node, Edge } from "./model.js";
+import type { NodeAttrs, EdgeAttrs, NodeId, Node, Edge, FileSlice } from "./model.js";
 
 export type GraphInstance = DirectedGraph<NodeAttrs, EdgeAttrs>;
+
+/** Opaque worktree identifier (string alias). */
+export type WorktreeId = string;
 
 /**
  * A read-only view over a composed graph (base + optional worktree overlay).
@@ -52,8 +55,11 @@ export function createGraph(): GraphInstance {
 
 // ── Overlay engine (worktree-view stream) ──
 
-/** A file-granularity slice produced by a language analyzer for the overlay. */
-export interface FileSlice {
+/**
+ * Analyzer-output slice used by the Overlay interface.
+ * Distinct from model.FileSlice which uses `nodes[]` (graph-storage shape).
+ */
+export interface OverlaySlice {
   file: Node;
   symbols: Node[];
   edges: Edge[];
@@ -62,7 +68,7 @@ export interface FileSlice {
 /** Per-worktree overlay: file-level replacements layered over the base graph. */
 export interface Overlay {
   /** Replace (or insert) all nodes/edges for a file. */
-  applyFile(filePath: string, slice: FileSlice): void;
+  applyFile(filePath: string, slice: OverlaySlice): void;
   /** Mark a file deleted so it is absent from the composed view. */
   deleteFile(filePath: string): void;
   /** Remove all data for a file (undo applyFile or deleteFile). */
@@ -72,8 +78,6 @@ export interface Overlay {
   /** Return the set of file paths covered by this overlay. */
   coveredFiles(): ReadonlySet<string>;
 }
-
-import type { FileSlice } from './model.js';
 
 /** Read-only view returned by GraphStore.composedView(). */
 export interface StoreView {
@@ -93,6 +97,7 @@ export interface StoreView {
 /**
  * In-memory graph store: base slices + per-worktree overlays.
  * The core stream (core-3) will replace this with the full durable implementation.
+ * Uses model.FileSlice (filePath, nodes[], edges[]) as the canonical storage shape.
  */
 export class GraphStore {
   private readonly _base = new Map<string, FileSlice>();
@@ -100,6 +105,10 @@ export class GraphStore {
 
   applyBaseSlice(slice: FileSlice): void {
     this._base.set(slice.filePath, slice);
+  }
+
+  removeBaseSlice(filePath: string): void {
+    this._base.delete(filePath);
   }
 
   applyOverlaySlice(worktreeId: string, slice: FileSlice): void {
@@ -141,7 +150,11 @@ export class GraphStore {
         if (!n) throw new Error(`No node: ${id}`);
         return { kind: n.kind, filePath: n.file ?? id, displayName: n.name } as NodeAttrs;
       },
-      forEachNode: (cb) => { for (const [id, n] of allNodes) cb(id, { kind: n.kind, filePath: n.file ?? id, displayName: n.name } as NodeAttrs); },
+      forEachNode: (cb) => {
+        for (const [id, n] of allNodes) {
+          cb(id, { kind: n.kind, filePath: n.file ?? id, displayName: n.name } as NodeAttrs);
+        }
+      },
       forEachOutEdge: (_id, _cb) => {},
       inDegree: (_id) => 0,
       get order() { return allNodes.size; },

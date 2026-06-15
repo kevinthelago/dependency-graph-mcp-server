@@ -14,17 +14,20 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// vi.hoisted runs before vi.mock factories so the variable is in scope.
+const { mockMatches } = vi.hoisted(() => ({ mockMatches: vi.fn().mockReturnValue([]) }));
+
 // --- Mock py-1 (tree-sitter scaffold) ---
 vi.mock('../../../src/analyzers/tree-sitter/index.js', () => ({
   loadGrammar: vi.fn().mockResolvedValue({ _lang: 'objc' }),
-  parseSource: vi.fn().mockReturnValue({ _tree: true }),
-  runQuery: vi.fn().mockReturnValue([]),
+  resolveGrammarPath: vi.fn().mockReturnValue('/mock/tree-sitter-objc.wasm'),
+  createParser: vi.fn().mockResolvedValue({ parse: vi.fn().mockReturnValue({ rootNode: {} }) }),
+  QueryRunner: vi.fn().mockImplementation(() => ({ matches: mockMatches })),
 }));
 
 // --- Mock cpp-1 (include resolver) ---
 vi.mock('../../../src/analyzers/cpp/resolver.js', () => {
   class MockIncludeResolver {
-    // By default everything is unresolved (null)
     resolve(_spec: string, _from: string, _quoted: boolean) {
       return null;
     }
@@ -32,19 +35,25 @@ vi.mock('../../../src/analyzers/cpp/resolver.js', () => {
   return { IncludeResolver: MockIncludeResolver };
 });
 
-import { runQuery } from '../../../src/analyzers/tree-sitter/index.js';
 import ObjcAnalyzer from '../../../src/analyzers/objc/index.js';
 import type { CaptureResult } from '../../../src/analyzers/objc/types.js';
 import { cap } from './helpers.js';
 
-const mockRunQuery = vi.mocked(runQuery);
-
+/**
+ * setCaptures controls what each successive call to queryRunner.matches() returns.
+ * byQuery maps call-index → CaptureResult[]. The CaptureResult[] are wrapped into
+ * the PatternMatch[] shape that QueryRunner.matches() actually returns.
+ */
 function setCaptures(byQuery: Record<number, CaptureResult[]>) {
   let callIdx = 0;
-  mockRunQuery.mockImplementation(() => {
-    const result = byQuery[callIdx] ?? [];
+  mockMatches.mockImplementation((_query: string, _tree: unknown) => {
+    const captures = byQuery[callIdx] ?? [];
     callIdx++;
-    return result as any;
+    // Wrap each CaptureResult into a single-capture PatternMatch
+    return captures.map((c) => ({
+      patternIndex: 0,
+      captures: [{ name: c.name, node: { text: c.text, startPosition: c.startPosition } }],
+    }));
   });
 }
 
@@ -58,7 +67,8 @@ describe('ObjcAnalyzer conformance', () => {
   let analyzer: ObjcAnalyzer;
 
   beforeEach(async () => {
-    mockRunQuery.mockReset();
+    mockMatches.mockReset();
+    mockMatches.mockReturnValue([]);
     analyzer = new ObjcAnalyzer();
     await analyzer.init(PROJECT_CTX as any);
   });

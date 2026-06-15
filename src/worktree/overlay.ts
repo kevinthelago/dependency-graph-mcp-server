@@ -10,7 +10,7 @@ import * as nodePath from "node:path";
 import * as crypto from "node:crypto";
 import type { Overlay } from "../graph/store.js";
 import type { LanguageAnalyzer, AnalysisFragment, ProjectContext } from "../analyzers/types.js";
-import type { ParseCache } from "../cache/index.js";
+import type { ICacheStore } from "../cache/index.js";
 import { makeCacheKey } from "../cache/index.js";
 import type { ChangedFile } from "./diff.js";
 
@@ -21,7 +21,7 @@ export interface SeedOverlayOptions {
   overlay: Overlay;
   changedFiles: ChangedFile[];
   getAnalyzer: (filePath: string) => LanguageAnalyzer | undefined;
-  cache: ParseCache;
+  cache: ICacheStore;
   projectContext: ProjectContext;
 }
 
@@ -88,7 +88,7 @@ async function analyzeFileCacheFirst(
   filePath: string,
   text: string,
   analyzer: LanguageAnalyzer,
-  cache: ParseCache,
+  cache: ICacheStore,
   projectContext: ProjectContext,
 ): Promise<AnalysisFragment> {
   const contentHash = sha256(text);

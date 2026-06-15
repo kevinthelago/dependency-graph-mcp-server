@@ -13,10 +13,13 @@
 
 // Local type definitions until src/analyzers/types.ts (core-5) lands on develop.
 // When it does: replace this import with `from '../types.js'`.
-import type { LanguageAnalyzer, AnalysisFragment, ProjectContext, Node } from './types.js';
-// py-1 — will resolve once the tree-sitter scaffold lands on develop
-import { loadGrammar, parseSource, runQuery } from '../tree-sitter/index.js';
-// cpp-1 — will resolve once the include resolver lands on develop
+import type { LanguageAnalyzer, AnalysisFragment, ProjectContext, Node, CaptureResult } from './types.js';
+// py-1 — tree-sitter scaffold
+import { loadGrammar, resolveGrammarPath, createParser } from '../tree-sitter/loader.js';
+import type { Language } from '../tree-sitter/loader.js';
+import { QueryRunner } from '../tree-sitter/query-runner.js';
+import type { PatternMatch } from '../tree-sitter/query-runner.js';
+// cpp-1 — include resolver
 import { IncludeResolver } from '../cpp/resolver.js';
 
 import {
@@ -29,6 +32,17 @@ import { extractImportEdges } from './imports.js';
 import { extractSymbolNodes, extractForwardDeclEdges } from './symbols.js';
 import type { IIncludeResolver } from './types.js';
 
+/** Convert real tree-sitter PatternMatch[] to our flat CaptureResult[] shape. */
+function flatCaptures(matches: PatternMatch[]): CaptureResult[] {
+  return matches.flatMap((m) =>
+    m.captures.map((c) => ({
+      name: c.name,
+      text: c.node.text,
+      startPosition: c.node.startPosition,
+    })),
+  );
+}
+
 /** Analyzer version — included in the parse-cache key. Bump on any grammar/logic change. */
 const ANALYZER_VERSION = '1.0.0';
 
@@ -38,11 +52,14 @@ export class ObjcAnalyzer implements LanguageAnalyzer {
   readonly extensions = ['.m', '.mm', '.h'];
   readonly version = ANALYZER_VERSION;
 
-  private language: unknown = null;
+  private grammar: Language | null = null;
+  private qr: QueryRunner | null = null;
   private resolver: IIncludeResolver | null = null;
 
   async init(project: ProjectContext): Promise<void> {
-    this.language = await loadGrammar('objc');
+    const wasmPath = resolveGrammarPath('tree-sitter-objc');
+    this.grammar = await loadGrammar(wasmPath);
+    this.qr = new QueryRunner(this.grammar);
     this.resolver = new IncludeResolver({
       repoRoot: project.repoRoot,
       config: project.config,
@@ -50,15 +67,18 @@ export class ObjcAnalyzer implements LanguageAnalyzer {
   }
 
   async analyzeFile(filePath: string, text: string): Promise<AnalysisFragment> {
-    const lang = this.language!;
-    const resolver = this.resolver!;
+    const { grammar, qr, resolver } = this;
+    if (!grammar || !qr || !resolver) {
+      throw new Error('ObjcAnalyzer.init() must be called before analyzeFile()');
+    }
 
-    const tree = parseSource(lang, text);
+    const parser = await createParser(grammar);
+    const tree = parser.parse(text);
 
-    const importCaptures = runQuery(tree, lang, IMPORT_QUERY);
-    const symbolCaptures = runQuery(tree, lang, SYMBOL_QUERY);
-    const fwdCaptures = runQuery(tree, lang, FORWARD_DECL_QUERY);
-    const implCaptures = runQuery(tree, lang, IMPL_QUERY);
+    const importCaptures = flatCaptures(qr.matches(IMPORT_QUERY, tree));
+    const symbolCaptures = flatCaptures(qr.matches(SYMBOL_QUERY, tree));
+    const fwdCaptures    = flatCaptures(qr.matches(FORWARD_DECL_QUERY, tree));
+    const implCaptures   = flatCaptures(qr.matches(IMPL_QUERY, tree));
 
     const fileNode: Node = {
       id: `file:${filePath}`,

@@ -77,11 +77,17 @@ function serializeKey(k: CacheKey): string {
 
 export declare function getParseCache(): ParseCache;
 
+/** Minimal cache interface for testing (no private SQLite fields required). */
+export interface ICacheStore {
+  get(key: CacheKey): AnalysisFragment | undefined;
+  put(key: CacheKey, fragment: AnalysisFragment): void;
+}
+
 export function makeCacheKey(
   analyzerId: string,
   analyzerVersion: string,
   grammarVersion: string,
   hash: string,
-): string {
-  return `${analyzerId}:${analyzerVersion}:${grammarVersion}:${hash}`;
+): CacheKey {
+  return { analyzerId, analyzerVersion, grammarVersion, contentHash: hash };
 }
