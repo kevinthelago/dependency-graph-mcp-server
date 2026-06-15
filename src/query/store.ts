@@ -2,15 +2,15 @@
 // Provides per-worktree graph injection for tests.
 // Self-contained so it doesn't conflict with the shared query/types.ts.
 
-import Graph from 'graphology';
-import type { GraphView } from '../graph/store.js';
+import type Graph from 'graphology';
+import { DirectedGraph } from 'graphology';
+import type { NodeAttrs, EdgeAttrs } from '../graph/model.js';
 
 const views = new Map<string, Graph>();
 
 /** Returns the composed graph view for the given worktree. */
-export function composedView(worktreeId: string): GraphView {
-  const g = views.get(worktreeId) ?? new Graph({ type: 'directed', multi: true });
-  return g as unknown as GraphView;
+export function composedView(worktreeId: string): Graph {
+  return views.get(worktreeId) ?? new DirectedGraph<NodeAttrs, EdgeAttrs>({ type: 'directed', multi: true });
 }
 
 /** Test-only: inject a graph for a worktree id. */
