@@ -10,7 +10,6 @@ import type { Language } from 'web-tree-sitter'
 import { existsSync } from 'fs'
 import { resolve, join, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { createRequire } from 'module'
 
 export type { Language }
 
