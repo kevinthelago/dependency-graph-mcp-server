@@ -3,8 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import type { ChangeBatch } from '../watcher/index.js';
 import { isBulkBatch } from '../watcher/index.js';
-import type { Overlay } from '../graph/store.js';
-import type { FileSlice } from '../graph/model.js';
+import type { Overlay, OverlaySlice } from '../graph/store.js';
 import type { CacheKey, ParseCache } from '../cache/index.js';
 import type { LanguageAnalyzer, AnalysisFragment, ProjectContext } from '../analyzers/types.js';
 
@@ -72,9 +71,9 @@ export async function analyzeAndApply(
     cache.put(key, fragment);
   }
 
-  const slice: FileSlice = {
-    filePath: relPath,
-    nodes: [fragment.file, ...fragment.symbols],
+  const slice: OverlaySlice = {
+    file: fragment.file,
+    symbols: fragment.symbols,
     edges: fragment.edges,
   };
   overlay.applyFile(relPath, slice);

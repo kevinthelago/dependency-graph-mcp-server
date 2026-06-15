@@ -14,8 +14,8 @@ import { reresolveOneDegree } from '../../src/orchestrator/reresolve.js';
 import { InvalidationEmitter } from '../../src/orchestrator/invalidation.js';
 import { isBulkBatch } from '../../src/watcher/bulk.js';
 import type { ChangeBatch } from '../../src/watcher/types.js';
-import type { Overlay, GraphView } from '../../src/graph/store.js';
-import type { Node, Edge, FileSlice, NodeAttrs } from '../../src/graph/model.js';
+import type { Overlay, OverlaySlice, GraphView } from '../../src/graph/store.js';
+import type { Node, Edge, NodeAttrs } from '../../src/graph/model.js';
 import type { LanguageAnalyzer, AnalysisFragment, ProjectContext } from '../../src/analyzers/types.js';
 import type { CacheKey } from '../../src/cache/index.js';
 import type { CacheAccess } from '../../src/orchestrator/incremental.js';
@@ -23,10 +23,10 @@ import type { CacheAccess } from '../../src/orchestrator/incremental.js';
 // ── In-memory helpers ────────────────────────────────────────────────────────
 
 class MemoryOverlay implements Overlay {
-  private readonly applied = new Map<string, FileSlice>();
+  private readonly applied = new Map<string, OverlaySlice>();
   private readonly deleted = new Set<string>();
 
-  applyFile(filePath: string, slice: FileSlice): void {
+  applyFile(filePath: string, slice: OverlaySlice): void {
     this.deleted.delete(filePath);
     this.applied.set(filePath, slice);
   }
@@ -49,7 +49,7 @@ class MemoryOverlay implements Overlay {
     return new Set([...this.applied.keys(), ...this.deleted]);
   }
 
-  getSlice(filePath: string): FileSlice | undefined {
+  getSlice(filePath: string): OverlaySlice | undefined {
     return this.applied.get(filePath);
   }
 
@@ -205,7 +205,7 @@ describe('analyzeAndApply', () => {
 
   it('deletes the file from the overlay when the file is unreadable', async () => {
     const overlay = new MemoryOverlay();
-    overlay.applyFile('src/gone.ts', { filePath: 'src/gone.ts', nodes: [fileNode('src/gone.ts')], edges: [] });
+    overlay.applyFile('src/gone.ts', { file: fileNode('src/gone.ts'), symbols: [], edges: [] });
 
     const cache = new MemoryCache();
     const analyzer = makeStubAnalyzer((p) => makeFragment(p));
@@ -297,8 +297,8 @@ describe('processIncrementalBatch', () => {
     const overlay = new MemoryOverlay();
     // Seed an old slice: a.ts imports b.ts and c.ts
     overlay.applyFile('src/a.ts', {
-      filePath: 'src/a.ts',
-      nodes: [fileNode('src/a.ts')],
+      file: fileNode('src/a.ts'),
+      symbols: [],
       edges: [importEdge('file:src/a.ts', 'file:src/b.ts'), importEdge('file:src/a.ts', 'file:src/c.ts')],
     });
 
@@ -335,7 +335,7 @@ describe('processIncrementalBatch', () => {
     await fs.writeFile(newAbsPath, 'export {}');
 
     const overlay = new MemoryOverlay();
-    overlay.applyFile('src/original.ts', { filePath: 'src/original.ts', nodes: [fileNode('src/original.ts')], edges: [] });
+    overlay.applyFile('src/original.ts', { file: fileNode('src/original.ts'), symbols: [], edges: [] });
 
     const oldAbsPath = path.join(tmpDir, 'src/original.ts');
     const batch: ChangeBatch = [{ type: 'move', path: newAbsPath, oldPath: oldAbsPath }];
@@ -369,8 +369,8 @@ describe('processIncrementalBatch', () => {
     const bulkResync = vi.fn(async () => {
       // Simulate bulk resync: apply a single summary slice
       overlay.applyFile('src/bulk-sentinel.ts', {
-        filePath: 'src/bulk-sentinel.ts',
-        nodes: [fileNode('src/bulk-sentinel.ts')],
+        file: fileNode('src/bulk-sentinel.ts'),
+        symbols: [],
         edges: [],
       });
     });
