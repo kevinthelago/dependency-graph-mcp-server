@@ -6,11 +6,11 @@
  */
 
 import { Query } from 'web-tree-sitter'
-import type { Language, Tree, Node as SyntaxNode, QueryCapture } from 'web-tree-sitter'
+import type { Language, Tree, Node, QueryCapture } from 'web-tree-sitter'
 
 export interface CaptureResult {
   name: string
-  node: SyntaxNode
+  node: Node
 }
 
 export interface PatternMatch {
@@ -25,12 +25,14 @@ export class QueryRunner {
 
   /** Compile and cache a tree-sitter query. */
   private getQuery(source: string): Query {
-    const cached = this.queryCache.get(source)
-    if (cached) return cached
-    const q = new Query(this.language, source)
-    this.queryCache.set(source, q)
+    let q = this.queryCache.get(source)
+    if (!q) {
+      q = new Query(this.language, source)
+      this.queryCache.set(source, q)
+    }
     return q
   }
+
   /**
    * Run a query and return all matches with named captures.
    * Matches are returned in document order (ascending start byte).

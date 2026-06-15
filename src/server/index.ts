@@ -52,9 +52,8 @@ export class McpServer {
     const { transport, port, close } = await createHttpTransport(config);
     this.boundPort = port;
     this.closeFn = close;
-    // StreamableHTTPServerTransport satisfies Transport at runtime; cast needed for
-    // exactOptionalPropertyTypes mismatch on onclose between SDK internal types.
-    await this.sdk.connect(transport as unknown as Parameters<typeof this.sdk.connect>[0]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await this.sdk.connect(transport as any);
     return { port };
   }
 

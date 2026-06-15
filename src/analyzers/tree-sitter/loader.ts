@@ -5,11 +5,11 @@
  * initialized once per process. Rust/C++/Obj-C reuse this same loader.
  */
 
-import { Parser } from 'web-tree-sitter'
-import { Language } from 'web-tree-sitter'
+import { Parser, Language } from 'web-tree-sitter'
 import { existsSync } from 'fs'
 import { resolve, join, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import { createRequire } from 'module'
 
 export type { Language }
 

@@ -134,3 +134,9 @@ export type ResolverHook = (
   fromFile: string,
   isSystem: boolean,
 ) => Promise<string | null>;
+
+// Re-export the shared tree-sitter scaffold helpers for language analyzers.
+export { loadGrammar, resolveGrammarPath, createParser } from './loader.js';
+export type { Language } from './loader.js';
+export { QueryRunner } from './query-runner.js';
+export type { PatternMatch, CaptureResult } from './query-runner.js';

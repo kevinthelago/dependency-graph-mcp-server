@@ -16,7 +16,10 @@
 
 import { existsSync } from 'fs'
 import { join, relative, dirname, resolve } from 'path'
-import type { ResolveResult } from '../tree-sitter/resolver-hook.js'
+
+type ResolveResult =
+  | { kind: 'file'; repoRelPath: string }
+  | { kind: 'external'; spec: string }
 
 /** Dotted module path → candidate file paths under a source root. */
 function moduleToPaths(sourceRoot: string, dotted: string): string[] {

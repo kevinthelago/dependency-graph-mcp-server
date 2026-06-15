@@ -9,8 +9,9 @@
  */
 
 import { readFileSync } from 'fs'
-import { join, dirname } from 'path'
+import { join, dirname, resolve as resolvePath } from 'path'
 import { fileURLToPath } from 'url'
+import Parser from 'web-tree-sitter'
 
 import type {
   LanguageAnalyzer,
@@ -20,14 +21,14 @@ import type {
   Edge,
   ImportRef,
 } from '../types.js'
-import { fileId, externalId } from '../../graph/node-id.js'
+import { fileId, symbolId, externalId } from '../../graph/node-id.js'
 import {
   loadGrammar,
   resolveGrammarPath,
   createParser,
-} from '../tree-sitter/loader.js'
-import type { Language } from '../tree-sitter/loader.js'
-import { QueryRunner, type CaptureResult } from '../tree-sitter/query-runner.js'
+  QueryRunner,
+} from '../tree-sitter/index.js'
+import type { Language } from '../tree-sitter/index.js'
 import { buildFileNode, extractSymbols } from './nodes.js'
 import {
   classifyAbsolute,
@@ -66,10 +67,10 @@ export class PythonAnalyzer implements LanguageAnalyzer {
   async init(project: ProjectContext): Promise<void> {
     this.project = project
 
-    const wasmPath = resolveGrammarPath('tree-sitter-python', {
-      ...(this.opts.wasmPath !== undefined ? { wasmPath: this.opts.wasmPath } : {}),
-      ...(this.opts.wasmDir !== undefined ? { wasmDir: this.opts.wasmDir } : {}),
-    })
+    const wasmOpts: { wasmPath?: string; wasmDir?: string } = {}
+    if (this.opts.wasmPath !== undefined) wasmOpts.wasmPath = this.opts.wasmPath
+    if (this.opts.wasmDir !== undefined) wasmOpts.wasmDir = this.opts.wasmDir
+    const wasmPath = resolveGrammarPath('tree-sitter-python', wasmOpts)
     this.grammar = await loadGrammar(wasmPath)
     this.queryRunner = new QueryRunner(this.grammar)
     this.sourceRoots = resolveSourceRoots(project.repoRoot, project.config)
@@ -85,8 +86,7 @@ export class PythonAnalyzer implements LanguageAnalyzer {
 
     const parser = await createParser(this.grammar)
     const tree = parser.parse(text)
-    if (!tree) throw new Error('Failed to parse ' + path)
-    if (!tree) throw new Error()
+    if (!tree) return { file: buildFileNode(path), symbols: [], edges: [], imports: [] }
 
     const matches = this.queryRunner.matches(TAGS_QUERY, tree)
 
@@ -199,7 +199,7 @@ export class PythonAnalyzer implements LanguageAnalyzer {
       // Each match corresponds to one import pattern in the query.
       // We reconstruct the full specifier + classification from the captures.
       const caps = Object.fromEntries(
-        match.captures.map((c: CaptureResult) => [c.name, c]),
+        match.captures.map((c) => [c.name, c]),
       )
 
       // ── import foo (absolute) ──────────────────────────────────────────

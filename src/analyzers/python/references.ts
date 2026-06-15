@@ -12,10 +12,10 @@
  * not tracked.
  */
 
-import type { Tree, Node as SyntaxNode } from 'web-tree-sitter'
-import type { Edge, ImportRef } from '../types.js'
+import type { Tree, Node } from 'web-tree-sitter'
+import type { GraphNode, Edge, ImportRef } from '../types.js'
 import { fileId, symbolId } from '../../graph/node-id.js'
-import type { QueryRunner } from '../tree-sitter/query-runner.js'
+import type { QueryRunner } from '../tree-sitter/index.js'
 
 /** A binding created by `from X import Y [as Z]`. */
 interface Binding {
@@ -161,7 +161,7 @@ export function buildReferenceEdges(
 }
 
 /** Return true if this identifier is in a definition (name) position. */
-function isDefinitionPosition(node: SyntaxNode): boolean {
+function isDefinitionPosition(node: Node): boolean {
   const parent = node.parent
   if (!parent) return false
   const parentType = parent.type
