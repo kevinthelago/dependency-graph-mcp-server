@@ -25,9 +25,9 @@ vi.mock('../../../src/analyzers/tree-sitter/loader.js', () => ({
 }));
 
 // --- Mock py-1 tree-sitter query runner (QueryRunner) ---
-// Must use function (not arrow) so the mock is constructable via `new QueryRunner(...)`.
 vi.mock('../../../src/analyzers/tree-sitter/query-runner.js', () => ({
-  QueryRunner: vi.fn().mockImplementation(function () { return { matches: mockMatches }; }),
+  // Must use a regular function (not arrow) so `new QueryRunner()` works.
+  QueryRunner: vi.fn().mockImplementation(function() { return { matches: mockMatches }; }),
 }));
 
 // --- Mock cpp-1 (include resolver) ---

@@ -4,6 +4,17 @@ import type { AnalysisFragment } from "../../src/analyzers/types.js";
 import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { createRequire as nodeCreateRequire } from "node:module";
+
+// Skip when the native better-sqlite3 binary isn't built for this platform/ABI.
+const _req = nodeCreateRequire(import.meta.url);
+let _sqliteAvailable = false;
+try {
+  const Sqlite = _req('better-sqlite3') as new (path: string) => { close(): void };
+  const db = new Sqlite(':memory:');
+  db.close();
+  _sqliteAvailable = true;
+} catch { /* no native build */ }
 
 const tmpDir = mkdtempSync(join(tmpdir(), "dep-graph-cache-test-"));
 
@@ -23,7 +34,7 @@ const fakeFragment: AnalysisFragment = {
   imports: [],
 };
 
-describe("ParseCache", () => {
+describe.skipIf(!_sqliteAvailable)("ParseCache", () => {
   it("miss returns undefined", () => {
     const cache = new ParseCache(join(tmpDir, "test1.db"));
     const result = cache.get({

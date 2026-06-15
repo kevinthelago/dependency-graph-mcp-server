@@ -1,63 +1,42 @@
-// GrammarHandle backed by web-tree-sitter (WASM) for use in tests.
-// Uses tree-sitter-rust.wasm shipped with tree-sitter-rust@^0.24.0.
-// Tests self-skip when the WASM file is absent.
+// Creates a GrammarHandle backed by native tree-sitter for use in tests.
+// Production code uses web-tree-sitter via the py-1 scaffold.
 
-import { Parser, Language } from 'web-tree-sitter'
 import { createRequire } from 'node:module'
-import { join, dirname } from 'node:path'
-import { existsSync } from 'node:fs'
 import type { GrammarParser, ParsedTree } from '../../src/analyzers/tree-sitter/index.js'
 
-const _require = createRequire(import.meta.url)
+const require = createRequire(import.meta.url)
 
-let initialized = false
 let grammarHandle: GrammarParser | null = null
+let loadAttempted = false
 
-function getRustWasmPath(): string | null {
+/**
+ * Returns a native tree-sitter grammar handle, or null when the native binary
+ * is unavailable (e.g. no prebuilt for this platform/Node ABI). Callers should
+ * skip tests when this returns null rather than failing.
+ */
+export async function getRustGrammarHandle(): Promise<GrammarParser | null> {
+  if (loadAttempted) return grammarHandle
+  loadAttempted = true
+
   try {
-    const pkgJson = _require.resolve('tree-sitter-rust/package.json')
-    const wasmPath = join(dirname(pkgJson), 'tree-sitter-rust.wasm')
-    return existsSync(wasmPath) ? wasmPath : null
+    // Dynamic require for native CJS modules
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const Parser = require('tree-sitter') as any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const RustGrammar = require('tree-sitter-rust') as any
+
+    const parser = new Parser()
+    parser.setLanguage(RustGrammar)
+
+    grammarHandle = {
+      parse(text: string): ParsedTree {
+        // tree-sitter native's SyntaxNode is structurally compatible with TreeNode
+        return parser.parse(text) as unknown as ParsedTree
+      },
+    }
   } catch {
-    return null
-  }
-}
-
-function getWebTreeSitterWasmPath(): string {
-  const entryPath = _require.resolve('web-tree-sitter')
-  return join(dirname(entryPath), 'web-tree-sitter.wasm')
-}
-
-async function ensureInit(): Promise<void> {
-  if (initialized) return
-  const wasmPath = getWebTreeSitterWasmPath()
-  await Parser.init({ locateFile: () => wasmPath })
-  initialized = true
-}
-
-export const RUST_WASM_AVAILABLE = getRustWasmPath() !== null
-
-export async function getRustGrammarHandle(): Promise<GrammarParser> {
-  if (grammarHandle != null) return grammarHandle
-
-  const wasmPath = getRustWasmPath()
-  if (!wasmPath) {
-    throw new Error(
-      'tree-sitter-rust.wasm not found — ensure tree-sitter-rust@^0.24.0 is installed',
-    )
-  }
-
-  await ensureInit()
-  const lang = await Language.load(wasmPath)
-  const parser = new Parser()
-  parser.setLanguage(lang)
-
-  grammarHandle = {
-    parse(text: string): ParsedTree {
-      const tree = parser.parse(text)
-      if (!tree) throw new Error('web-tree-sitter parse returned null for Rust source')
-      return tree as unknown as ParsedTree
-    },
+    // Native binary not available for this platform/Node ABI — callers skip.
+    grammarHandle = null
   }
 
   return grammarHandle
