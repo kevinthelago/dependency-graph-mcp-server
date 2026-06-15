@@ -109,7 +109,7 @@ describe('WorktreeWatcher (integration)', () => {
     await wait(100); // let chokidar settle after start
 
     await writeFile(existing, 'v2');
-    await wait(200);
+    await wait(500); // Windows fs.watch delivers change events with higher latency
 
     const allEvents = batches.flat();
     expect(allEvents).toContainEqual(expect.objectContaining({ type: 'change', path: existing }));
