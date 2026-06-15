@@ -47,7 +47,7 @@ export async function analyzeAndApply(
   overlay: Overlay,
   analyzer: LanguageAnalyzer,
   cache: CacheAccess,
-  projectContext: ProjectContext,
+  _projectContext: ProjectContext,
 ): Promise<string[]> {
   let text: string;
   try {

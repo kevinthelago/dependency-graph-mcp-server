@@ -190,7 +190,7 @@ export async function getNeighborsHandler(
 
   const allIn = Array.from(inMap.values()).sort(sortById);
   const allOut = Array.from(outMap.values()).sort(sortById);
-  const total = allIn.length + allOut.length;
+  // total = allIn.length + allOut.length; (unused but kept for reference)
 
   // Split limit between in and out; if direction is one-sided, give it the full limit
   let inLimit: number;

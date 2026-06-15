@@ -9,9 +9,8 @@
  */
 
 import { readFileSync } from 'fs'
-import { join, dirname, resolve as resolvePath } from 'path'
+import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import Parser from 'web-tree-sitter'
 
 import type {
   LanguageAnalyzer,
@@ -21,7 +20,7 @@ import type {
   Edge,
   ImportRef,
 } from '../types.js'
-import { fileId, symbolId, externalId } from '../../graph/node-id.js'
+import { fileId, externalId } from '../../graph/node-id.js'
 import {
   loadGrammar,
   resolveGrammarPath,

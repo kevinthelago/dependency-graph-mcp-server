@@ -1,7 +1,6 @@
 // ts-3: Import resolution — paths/baseUrl, external leaves, unresolved
 
 import * as ts from 'typescript';
-import * as path from 'node:path';
 import type { Edge } from '../../graph/model.js';
 import type { ImportRef } from '../types.js';
 import { fileId, externalId } from '../../graph/node-id.js';
