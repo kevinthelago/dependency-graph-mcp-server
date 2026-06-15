@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.js.map
+tsc-output.txt
+vitest-output.txt
+test-output.txt
+coverage/
