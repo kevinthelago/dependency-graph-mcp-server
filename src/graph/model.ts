@@ -3,6 +3,7 @@ export type NodeId = string;
 
 export type NodeKind = "file" | "symbol" | "external";
 
+/** Edge kinds used by the dependency-graph store (develop/core). */
 export type EdgeKind =
   | "imports"
   | "references"
@@ -39,4 +40,53 @@ export interface EdgeAttrs {
   kind: EdgeKind;
   /** Optional line in the source file where this edge originates */
   line?: number;
+}
+
+// ── Analyzer-layer types (used by LanguageAnalyzer and the overlay engine) ──
+
+export type Language = "ts" | "js" | "python" | "rust" | "c" | "cpp" | "objc" | null;
+export type SymbolKind =
+  | "function"
+  | "class"
+  | "variable"
+  | "interface"
+  | "type"
+  | "enum"
+  | "module"
+  | "macro"
+  | "protocol"
+  | "struct"
+  | "trait";
+
+export interface Loc {
+  line: number;
+  col: number;
+}
+
+/** Flat node representation produced by language analyzers and stored in overlays. */
+export interface Node {
+  id: string;
+  kind: NodeKind;
+  language: Language;
+  name: string;
+  symbolKind?: SymbolKind;
+  file?: string;
+  loc?: Loc;
+  exported?: boolean;
+}
+
+export type AnalyzerEdgeKind = "import" | "reference";
+export type TargetType = "file" | "symbol" | "external";
+export type Resolution = "resolved" | "unresolved";
+
+/** Edge representation produced by language analyzers and stored in overlays. */
+export interface Edge {
+  from: string;
+  to: string;
+  kind: AnalyzerEdgeKind;
+  targetType: TargetType;
+  typeOnly?: boolean;
+  wildcard?: boolean;
+  resolution: Resolution;
+  loc?: Loc;
 }

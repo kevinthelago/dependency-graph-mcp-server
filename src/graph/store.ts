@@ -1,5 +1,5 @@
 import { DirectedGraph } from "graphology";
-import type { NodeAttrs, EdgeAttrs, NodeId } from "./model.js";
+import type { NodeAttrs, EdgeAttrs, NodeId, Node, Edge } from "./model.js";
 
 export type GraphInstance = DirectedGraph<NodeAttrs, EdgeAttrs>;
 
@@ -49,3 +49,33 @@ export function createGraphView(graph: GraphInstance): GraphView {
 export function createGraph(): GraphInstance {
   return new DirectedGraph<NodeAttrs, EdgeAttrs>();
 }
+
+// ── Overlay engine (worktree-view stream) ──
+
+/** A file-granularity slice produced by a language analyzer for the overlay. */
+export interface FileSlice {
+  file: Node;
+  symbols: Node[];
+  edges: Edge[];
+}
+
+/** Per-worktree overlay: file-level replacements layered over the base graph. */
+export interface Overlay {
+  /** Replace (or insert) all nodes/edges for a file. */
+  applyFile(filePath: string, slice: FileSlice): void;
+  /** Mark a file deleted so it is absent from the composed view. */
+  deleteFile(filePath: string): void;
+  /** Remove all data for a file (undo applyFile or deleteFile). */
+  clearFile(filePath: string): void;
+  /** True when no files have been modified/deleted relative to base. */
+  isEmpty(): boolean;
+  /** Return the set of file paths covered by this overlay. */
+  coveredFiles(): ReadonlySet<string>;
+}
+
+/** The graph store singleton — owned by core-3. */
+export declare const graphStore: {
+  createOverlay(worktreeId: string): Overlay;
+  dropOverlay(worktreeId: string): void;
+  composedView(worktreeId: string): GraphView;
+};
