@@ -89,7 +89,7 @@ async function analyzeFileCacheFirst(
   text: string,
   analyzer: LanguageAnalyzer,
   cache: ParseCache,
-  _projectContext: ProjectContext,
+  projectContext: ProjectContext,
 ): Promise<AnalysisFragment> {
   const contentHash = sha256(text);
   const key = makeCacheKey(

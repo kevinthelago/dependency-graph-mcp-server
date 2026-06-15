@@ -113,7 +113,6 @@ export function isWithin(candidate: string, root: string): boolean {
 /** Walk up until we find an existing path, return its realpath. */
 async function resolveNearestExistingAncestor(p: string): Promise<string> {
   let current = nodePath.resolve(p);
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     try {
       return await fs.realpath(current);

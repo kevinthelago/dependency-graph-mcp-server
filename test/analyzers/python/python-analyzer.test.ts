@@ -24,6 +24,7 @@ import {
   WASM_PATH,
   WASM_AVAILABLE,
   makeContext,
+  ROOT,
 } from './helpers.js'
 
 const skip = !WASM_AVAILABLE
@@ -159,7 +160,7 @@ describe('PythonAnalyzer', () => {
     const text = `import nonexistent_package\nfrom another_missing import thing`
     const frag = await analyzer.analyzeFile('some_file.py', text)
 
-    void frag.edges.filter((e) => e.resolution === 'unresolved')
+    const unresolved = frag.edges.filter((e) => e.resolution === 'unresolved')
     // Both imports should be external (stdlib heuristic), not unresolved
     // But for something that can't be resolved and isn't in source roots,
     // we emit external. Let's test with a relative import that fails:

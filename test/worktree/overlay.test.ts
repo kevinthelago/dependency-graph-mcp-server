@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import * as fs from "node:fs/promises";
+import * as nodePath from "node:path";
 import { seedOverlay } from "../../src/worktree/overlay.js";
 import type { ChangedFile } from "../../src/worktree/diff.js";
 import {
@@ -14,7 +15,7 @@ import {
 } from "./helpers.js";
 import type { AnalysisFragment } from "../../src/analyzers/types.js";
 
-function makeFragment(filePath: string, _text: string): AnalysisFragment {
+function makeFragment(filePath: string, text: string): AnalysisFragment {
   return {
     file: fileNode(filePath),
     symbols: [],

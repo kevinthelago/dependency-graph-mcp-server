@@ -48,7 +48,7 @@ export function containingFileId(id: NodeId): NodeId | null {
 export function displayName(id: NodeId): string {
   if (id.startsWith("file:")) {
     const path = id.slice(5);
-    return path.split(/[/\\]/).pop() ?? path;
+    return path.split(/[\/]/).pop() ?? path;
   }
   if (id.startsWith("sym:")) {
     const sym = nodeSymbolName(id);
