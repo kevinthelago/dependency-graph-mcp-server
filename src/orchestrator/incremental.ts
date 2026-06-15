@@ -3,13 +3,15 @@ import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import type { ChangeBatch } from '../watcher/index.js';
 import { isBulkBatch } from '../watcher/index.js';
-import type { Overlay, FileSlice } from '../graph/store.js';
+import type { Overlay } from '../graph/store.js';
+import type { FileSlice } from '../graph/model.js';
+import type { CacheKey, ParseCache } from '../cache/index.js';
 import type { LanguageAnalyzer, AnalysisFragment, ProjectContext } from '../analyzers/types.js';
-import type { ParseCache } from '../cache/index.js';
 
-/** Inline cache-key builder; mirrors cache/index.ts#makeCacheKey. */
-function cacheKey(id: string, version: string, grammarVersion: string, hash: string): string {
-  return `${id}:${version}:${grammarVersion}:${hash}`;
+/** Minimal cache interface; structurally satisfied by ParseCache and in-memory stubs. */
+export interface CacheAccess {
+  get(key: CacheKey): AnalysisFragment | undefined;
+  put(key: CacheKey, fragment: AnalysisFragment): void;
 }
 
 export interface IncrementalContext {
@@ -18,7 +20,7 @@ export interface IncrementalContext {
   baseBranch: string;
   overlay: Overlay;
   getAnalyzer(absPath: string): LanguageAnalyzer | undefined;
-  cache: ParseCache;
+  cache: CacheAccess;
   projectContext: ProjectContext;
   /**
    * Override the bulk-resync implementation (useful for testing).
@@ -45,7 +47,7 @@ export async function analyzeAndApply(
   relPath: string,
   overlay: Overlay,
   analyzer: LanguageAnalyzer,
-  cache: ParseCache,
+  cache: CacheAccess,
   projectContext: ProjectContext,
 ): Promise<string[]> {
   let text: string;
@@ -56,8 +58,13 @@ export async function analyzeAndApply(
     return [];
   }
 
-  const contentHash = createHash('sha256').update(text, 'utf8').digest('hex');
-  const key = cacheKey(analyzer.id, analyzer.version, 'n/a', contentHash);
+  const hash = createHash('sha256').update(text, 'utf8').digest('hex');
+  const key: CacheKey = {
+    analyzerId: analyzer.id,
+    analyzerVersion: analyzer.version,
+    grammarVersion: 'n/a',
+    contentHash: hash,
+  };
 
   let fragment: AnalysisFragment | undefined = cache.get(key);
   if (!fragment) {
@@ -66,8 +73,8 @@ export async function analyzeAndApply(
   }
 
   const slice: FileSlice = {
-    file: fragment.file,
-    symbols: fragment.symbols,
+    filePath: relPath,
+    nodes: [fragment.file, ...fragment.symbols],
     edges: fragment.edges,
   };
   overlay.applyFile(relPath, slice);
@@ -167,7 +174,7 @@ async function defaultBulkResync(ctx: IncrementalContext): Promise<void> {
     overlay: ctx.overlay,
     changedFiles,
     getAnalyzer: ctx.getAnalyzer,
-    cache: ctx.cache,
+    cache: ctx.cache as ParseCache,
     projectContext: ctx.projectContext,
   });
 }

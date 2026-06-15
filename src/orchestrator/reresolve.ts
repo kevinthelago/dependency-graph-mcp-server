@@ -2,14 +2,13 @@ import { join } from 'node:path';
 import type { GraphView } from '../graph/store.js';
 import type { Overlay } from '../graph/store.js';
 import type { LanguageAnalyzer, ProjectContext } from '../analyzers/types.js';
-import type { ParseCache } from '../cache/index.js';
-import { analyzeAndApply } from './incremental.js';
+import { analyzeAndApply, type CacheAccess } from './incremental.js';
 
 export interface ReresolveContext {
   worktreeRoot: string;
   overlay: Overlay;
   getAnalyzer(absPath: string): LanguageAnalyzer | undefined;
-  cache: ParseCache;
+  cache: CacheAccess;
   projectContext: ProjectContext;
 }
 

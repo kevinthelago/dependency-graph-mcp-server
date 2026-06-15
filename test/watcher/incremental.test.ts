@@ -14,10 +14,11 @@ import { reresolveOneDegree } from '../../src/orchestrator/reresolve.js';
 import { InvalidationEmitter } from '../../src/orchestrator/invalidation.js';
 import { isBulkBatch } from '../../src/watcher/bulk.js';
 import type { ChangeBatch } from '../../src/watcher/types.js';
-import type { Overlay, FileSlice, GraphView } from '../../src/graph/store.js';
-import type { Node, Edge } from '../../src/graph/model.js';
+import type { Overlay, GraphView } from '../../src/graph/store.js';
+import type { Node, Edge, FileSlice, NodeAttrs } from '../../src/graph/model.js';
 import type { LanguageAnalyzer, AnalysisFragment, ProjectContext } from '../../src/analyzers/types.js';
-import type { ParseCache } from '../../src/cache/index.js';
+import type { CacheKey } from '../../src/cache/index.js';
+import type { CacheAccess } from '../../src/orchestrator/incremental.js';
 
 // ── In-memory helpers ────────────────────────────────────────────────────────
 
@@ -61,18 +62,22 @@ class MemoryOverlay implements Overlay {
   }
 }
 
-class MemoryCache implements ParseCache {
+function serializeKey(k: CacheKey): string {
+  return `${k.analyzerId}:${k.analyzerVersion}:${k.grammarVersion}:${k.contentHash}`;
+}
+
+class MemoryCache implements CacheAccess {
   private readonly store = new Map<string, AnalysisFragment>();
   hits = 0;
 
-  get(key: string): AnalysisFragment | undefined {
-    const v = this.store.get(key);
+  get(key: CacheKey): AnalysisFragment | undefined {
+    const v = this.store.get(serializeKey(key));
     if (v !== undefined) this.hits++;
     return v;
   }
 
-  put(key: string, fragment: AnalysisFragment): void {
-    this.store.set(key, fragment);
+  put(key: CacheKey, fragment: AnalysisFragment): void {
+    this.store.set(serializeKey(key), fragment);
   }
 }
 
@@ -126,10 +131,10 @@ const testProjectContext: ProjectContext = {
 
 /** A minimal read-only graph view for reresolve tests. */
 class StubGraphView implements GraphView {
-  private readonly nodeMap = new Map<string, Record<string, unknown>>();
+  private readonly nodeMap = new Map<string, NodeAttrs>();
   private readonly inEdges = new Map<string, string[]>();
 
-  addNode(id: string, attrs: Record<string, unknown>): void {
+  addNode(id: string, attrs: NodeAttrs): void {
     this.nodeMap.set(id, attrs);
   }
 
@@ -155,10 +160,10 @@ class StubGraphView implements GraphView {
     return [...this.inNeighbors(id)];
   }
 
-  getNodeAttributes(id: string): Record<string, unknown> {
+  getNodeAttributes(id: string): NodeAttrs {
     const a = this.nodeMap.get(id);
     if (a === undefined) throw new Error(`Node not found: ${id}`);
-    return a;
+    return a as NodeAttrs;
   }
 
   nodes(): string[] {
@@ -200,7 +205,7 @@ describe('analyzeAndApply', () => {
 
   it('deletes the file from the overlay when the file is unreadable', async () => {
     const overlay = new MemoryOverlay();
-    overlay.applyFile('src/gone.ts', { file: fileNode('src/gone.ts'), symbols: [], edges: [] });
+    overlay.applyFile('src/gone.ts', { filePath: 'src/gone.ts', nodes: [fileNode('src/gone.ts')], edges: [] });
 
     const cache = new MemoryCache();
     const analyzer = makeStubAnalyzer((p) => makeFragment(p));
@@ -292,8 +297,8 @@ describe('processIncrementalBatch', () => {
     const overlay = new MemoryOverlay();
     // Seed an old slice: a.ts imports b.ts and c.ts
     overlay.applyFile('src/a.ts', {
-      file: fileNode('src/a.ts'),
-      symbols: [],
+      filePath: 'src/a.ts',
+      nodes: [fileNode('src/a.ts')],
       edges: [importEdge('file:src/a.ts', 'file:src/b.ts'), importEdge('file:src/a.ts', 'file:src/c.ts')],
     });
 
@@ -330,7 +335,7 @@ describe('processIncrementalBatch', () => {
     await fs.writeFile(newAbsPath, 'export {}');
 
     const overlay = new MemoryOverlay();
-    overlay.applyFile('src/original.ts', { file: fileNode('src/original.ts'), symbols: [], edges: [] });
+    overlay.applyFile('src/original.ts', { filePath: 'src/original.ts', nodes: [fileNode('src/original.ts')], edges: [] });
 
     const oldAbsPath = path.join(tmpDir, 'src/original.ts');
     const batch: ChangeBatch = [{ type: 'move', path: newAbsPath, oldPath: oldAbsPath }];
@@ -364,8 +369,8 @@ describe('processIncrementalBatch', () => {
     const bulkResync = vi.fn(async () => {
       // Simulate bulk resync: apply a single summary slice
       overlay.applyFile('src/bulk-sentinel.ts', {
-        file: fileNode('src/bulk-sentinel.ts'),
-        symbols: [],
+        filePath: 'src/bulk-sentinel.ts',
+        nodes: [fileNode('src/bulk-sentinel.ts')],
         edges: [],
       });
     });
@@ -411,8 +416,8 @@ describe('reresolveOneDegree', () => {
     // Graph: file:src/a.ts → imports → file:src/b.ts
     // b.ts changes → reresolve should re-analyze a.ts
     const view = new StubGraphView();
-    view.addNode('file:src/b.ts', { kind: 'file', name: 'src/b.ts', language: 'ts' });
-    view.addNode('file:src/a.ts', { kind: 'file', name: 'src/a.ts', language: 'ts' });
+    view.addNode('file:src/b.ts', { kind: 'file', filePath: 'src/b.ts', displayName: 'src/b.ts' });
+    view.addNode('file:src/a.ts', { kind: 'file', filePath: 'src/a.ts', displayName: 'src/a.ts' });
     view.addInEdge('file:src/a.ts', 'file:src/b.ts'); // a.ts imports b.ts
 
     // Create the file on disk so analyzeAndApply can read it
@@ -438,8 +443,8 @@ describe('reresolveOneDegree', () => {
 
   it('skips symbol and external in-neighbors (only re-analyzes file nodes)', async () => {
     const view = new StubGraphView();
-    view.addNode('file:src/b.ts', { kind: 'file', name: 'src/b.ts', language: 'ts' });
-    view.addNode('sym:src/x.ts#fn', { kind: 'symbol', name: 'fn', file: 'src/x.ts', language: 'ts' });
+    view.addNode('file:src/b.ts', { kind: 'file', filePath: 'src/b.ts', displayName: 'src/b.ts' });
+    view.addNode('sym:src/x.ts#fn', { kind: 'symbol', filePath: 'src/x.ts', symbolName: 'fn', displayName: 'fn' });
     view.addInEdge('sym:src/x.ts#fn', 'file:src/b.ts');
 
     const overlay = new MemoryOverlay();
