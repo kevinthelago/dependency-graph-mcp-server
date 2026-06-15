@@ -235,7 +235,7 @@ export async function handleTracePaths(
   input: TracePathsInput,
   ctx: ToolContext,
 ): Promise<TracePathsResult> {
-  const graph = composedView(ctx.worktreeId);
+  const graph = composedView(ctx.worktreeId) as unknown as GraphView;
 
   // Cast needed: Zod infers `symbol?: string | undefined` but TargetSpec uses exactOptionalPropertyTypes.
   const fromResult = resolveTarget(graph, input.from as TargetSpec);
