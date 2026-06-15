@@ -11,9 +11,9 @@
 
 import type { WorktreeEntry } from "./registry.js";
 import type { SeedOverlayOptions } from "./overlay.js";
-import type { LanguageAnalyzer } from "../analyzers/types.js";
-import type { ParseCache } from "../cache/index.js";
-import type { ProjectContext } from "../analyzers/types.js";
+import type { LanguageAnalyzer, ProjectContext } from "../analyzers/types.js";
+import type { ICacheStore } from "../cache/index.js";
+import type { Overlay } from "../graph/store.js";
 import { computeChangedFiles } from "./diff.js";
 import { seedOverlay } from "./overlay.js";
 
@@ -83,9 +83,11 @@ export class LifecycleManager {
 /** Options for refreshing a single worktree's overlay. */
 export interface RefreshOptions {
   entry: WorktreeEntry;
+  /** The overlay to clear and reseed — passed explicitly since WorktreeEntry is core-owned. */
+  overlay: Overlay;
   repoRoot: string;
   getAnalyzer: (filePath: string) => LanguageAnalyzer | undefined;
-  cache: ParseCache;
+  cache: ICacheStore;
   projectContext: ProjectContext;
 }
 
@@ -94,11 +96,11 @@ export interface RefreshOptions {
  * Used by: re-registration, explicit refresh, base-branch-move.
  */
 export async function refreshOverlay(opts: RefreshOptions): Promise<void> {
-  const { entry, repoRoot, getAnalyzer, cache, projectContext } = opts;
+  const { entry, overlay, repoRoot, getAnalyzer, cache, projectContext } = opts;
 
   // Clear everything in the current overlay before reseeding
-  for (const filePath of entry.overlay.coveredFiles()) {
-    entry.overlay.clearFile(filePath);
+  for (const filePath of overlay.coveredFiles()) {
+    overlay.clearFile(filePath);
   }
 
   const changedFiles = await computeChangedFiles(
@@ -111,7 +113,7 @@ export async function refreshOverlay(opts: RefreshOptions): Promise<void> {
     worktreeRoot: entry.worktreeRoot,
     repoRoot,
     baseBranch: entry.baseBranch,
-    overlay: entry.overlay,
+    overlay,
     changedFiles,
     getAnalyzer,
     cache,
