@@ -90,7 +90,7 @@ function serializeNode(
   if (attrs.symbolKind !== undefined) node.symbolKind = attrs.symbolKind as string;
   if (attrs.file !== undefined) node.file = attrs.file as string;
   if (includeLocations && attrs.loc !== undefined) {
-    node.loc = attrs.loc as SerializedNode['loc'];
+    node.loc = attrs.loc as NonNullable<SerializedNode['loc']>;
   }
   if (attrs.exported !== undefined) node.exported = attrs.exported as boolean;
   return node;
@@ -113,7 +113,7 @@ function serializeEdge(
   if (attrs.typeOnly !== undefined) e.typeOnly = attrs.typeOnly as boolean;
   if (attrs.wildcard !== undefined) e.wildcard = attrs.wildcard as boolean;
   if (includeLocations && attrs.loc !== undefined) {
-    e.loc = attrs.loc as SerializedEdge['loc'];
+    e.loc = attrs.loc as NonNullable<SerializedEdge['loc']>;
   }
   return e;
 }
