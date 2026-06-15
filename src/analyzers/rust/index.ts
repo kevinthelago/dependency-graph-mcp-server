@@ -202,7 +202,7 @@ export class RustAnalyzer implements LanguageAnalyzer {
       )
     const sortedImports = imports
       .slice()
-      .sort((a, b) => (a.targetId < b.targetId ? -1 : a.targetId > b.targetId ? 1 : 0))
+      .sort((a, b) => (a.specifier < b.specifier ? -1 : a.specifier > b.specifier ? 1 : 0))
 
     return {
       file: fileNode,
