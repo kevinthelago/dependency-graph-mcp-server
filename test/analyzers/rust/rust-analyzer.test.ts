@@ -1,11 +1,10 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { RustAnalyzer } from '../../../src/analyzers/rust/index.js'
 import type { ProjectContext } from '../../../src/analyzers/types.js'
-import { getRustGrammarHandle } from '../../helpers/grammar.js'
+import { getRustGrammarHandle, RUST_WASM_AVAILABLE } from '../../helpers/grammar.js'
 import {
   assertConformance,
   assertExternalLeaves,
@@ -14,11 +13,6 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const FIXTURES = path.join(__dirname, '../../../fixtures/rust')
-
-// Skip the entire suite when native tree-sitter isn't built for this platform.
-const _req = createRequire(import.meta.url)
-let _nativeAvailable = false
-try { _req('tree-sitter'); _nativeAvailable = true } catch { /* no native build */ }
 
 function fixtureCtx(fixture: string): ProjectContext {
   return {
@@ -32,12 +26,12 @@ function readFixture(fixture: string, ...parts: string[]): string {
   return readFileSync(path.join(FIXTURES, fixture, ...parts), 'utf-8')
 }
 
-describe.skipIf(!_nativeAvailable)('RustAnalyzer', () => {
+describe.skipIf(!RUST_WASM_AVAILABLE)('RustAnalyzer', () => {
   let analyzer: RustAnalyzer
 
   beforeAll(async () => {
     const grammar = await getRustGrammarHandle()
-    analyzer = new RustAnalyzer(() => Promise.resolve(grammar!))
+    analyzer = new RustAnalyzer(() => Promise.resolve(grammar))
   })
 
   // -------------------------------------------------------------------------
