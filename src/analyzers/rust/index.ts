@@ -144,7 +144,7 @@ export class RustAnalyzer implements LanguageAnalyzer {
             resolution: 'resolved',
             loc: useDecl.loc,
           })
-          imports.push({ targetId, resolution: 'resolved' })
+          imports.push({ specifier: flat.segments.join('::'), resolvedPath: resolved.targetFile, resolution: 'resolved' })
         } else if (resolved.externalSpec != null) {
           const extId = makeExtId('rust', resolved.externalSpec)
           if (!externalNodes.has(extId)) {
@@ -164,7 +164,7 @@ export class RustAnalyzer implements LanguageAnalyzer {
             resolution: resolved.resolution,
             loc: useDecl.loc,
           })
-          imports.push({ targetId: extId, resolution: resolved.resolution })
+          imports.push({ specifier: resolved.externalSpec, resolution: resolved.resolution })
         } else {
           const pseudoId = makeFileId(`<unresolved>/${flat.segments.join('::')}`)
           edges.push({
@@ -175,7 +175,7 @@ export class RustAnalyzer implements LanguageAnalyzer {
             resolution: 'unresolved',
             loc: useDecl.loc,
           })
-          imports.push({ targetId: pseudoId, resolution: 'unresolved' })
+          imports.push({ specifier: flat.segments.join('::'), resolution: 'unresolved' })
         }
       }
     }

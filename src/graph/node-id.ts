@@ -54,3 +54,21 @@ export function displayName(id: NodeId): string {
   }
   return id.slice(4); // ext: → strip prefix
 }
+
+// ---------------------------------------------------------------------------
+// Analyzer node-id helpers — matches contracts/graph-model.md id format.
+// Used by LanguageAnalyzer implementations; core-2 will unify with above.
+// ---------------------------------------------------------------------------
+
+export function makeFileId(repoRelativePath: string): string {
+  return `file:${repoRelativePath}`
+}
+
+export function makeSymId(repoRelativePath: string, symbolName: string, suffix = 0): string {
+  const base = `sym:${repoRelativePath}#${symbolName}`
+  return suffix === 0 ? base : `${base}~${suffix}`
+}
+
+export function makeExtId(language: string, spec: string): string {
+  return `ext:${language}:${spec}`
+}
