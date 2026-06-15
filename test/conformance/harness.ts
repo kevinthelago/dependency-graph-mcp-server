@@ -27,7 +27,7 @@ const FAKE_PROJECT_CONTEXT: ProjectContext = {
   repoRoot: "/fake/repo",
   config: {},
   resolveExternal(spec) {
-    return { specifier: spec, language: "unknown" };
+    return { id: `ext:unknown:${spec}`, specifier: spec, language: "unknown" };
   },
 };
 

@@ -18,7 +18,7 @@ export async function createHttpTransport(
   const host = config.host ?? "127.0.0.1";
   const port = config.port ?? 0; // 0 = OS picks a free port
 
-  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+  const transport = new StreamableHTTPServerTransport({});
 
   const server = createServer(
     (req: IncomingMessage, res: ServerResponse) => {
