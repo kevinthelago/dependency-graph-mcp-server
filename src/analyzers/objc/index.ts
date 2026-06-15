@@ -74,7 +74,9 @@ export class ObjcAnalyzer implements LanguageAnalyzer {
     }
 
     const parser = await createParser(grammar);
-    const tree = parser.parse(text);
+    const rawTree = parser.parse(text);
+    if (!rawTree) throw new Error('Failed to parse ' + filePath);
+    const tree = rawTree;
 
     const importCaptures = flatCaptures(qr.matches(IMPORT_QUERY, tree));
     const symbolCaptures = flatCaptures(qr.matches(SYMBOL_QUERY, tree));

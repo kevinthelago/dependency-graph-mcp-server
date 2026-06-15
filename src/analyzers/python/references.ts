@@ -12,10 +12,10 @@
  * not tracked.
  */
 
-import type { Tree, SyntaxNode } from 'web-tree-sitter'
+import type { Tree, Node as SyntaxNode } from 'web-tree-sitter'
 import type { GraphNode, Edge, ImportRef } from '../types.js'
 import { fileId, symbolId } from '../../graph/node-id.js'
-import type { QueryRunner } from '../tree-sitter/index.js'
+import type { QueryRunner } from '../tree-sitter/query-runner.js'
 
 /** A binding created by `from X import Y [as Z]`. */
 interface Binding {

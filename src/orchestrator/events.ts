@@ -13,8 +13,8 @@ export class InvalidationEmitter extends EventEmitter {
     return this.off("invalidate", listener);
   }
 
-  emit(event: "invalidate", nodeIds: string[]): boolean;
-  emit(event: string | symbol, ...args: unknown[]): boolean {
+  override emit(event: "invalidate", nodeIds: string[]): boolean;
+  override emit(event: string | symbol, ...args: unknown[]): boolean {
     return super.emit(event, ...args);
   }
 

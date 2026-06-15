@@ -7,7 +7,7 @@
 
 import type { GraphNode, SymbolKind } from '../types.js'
 import { fileId, symbolId } from '../../graph/node-id.js'
-import type { PatternMatch } from '../tree-sitter/index.js'
+import type { PatternMatch } from '../tree-sitter/query-runner.js'
 
 const DEFINITION_TO_SYMBOL_KIND: Record<string, SymbolKind> = {
   'definition.function': 'function',

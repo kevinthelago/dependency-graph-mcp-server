@@ -26,9 +26,9 @@ import {
   loadGrammar,
   resolveGrammarPath,
   createParser,
-  QueryRunner,
-} from '../tree-sitter/index.js'
-import type { Language } from '../tree-sitter/index.js'
+} from '../tree-sitter/loader.js'
+import type { Language } from '../tree-sitter/loader.js'
+import { QueryRunner, type CaptureResult } from '../tree-sitter/query-runner.js'
 import { buildFileNode, extractSymbols } from './nodes.js'
 import {
   classifyAbsolute,
@@ -68,8 +68,8 @@ export class PythonAnalyzer implements LanguageAnalyzer {
     this.project = project
 
     const wasmPath = resolveGrammarPath('tree-sitter-python', {
-      wasmPath: this.opts.wasmPath,
-      wasmDir: this.opts.wasmDir,
+      ...(this.opts.wasmPath !== undefined ? { wasmPath: this.opts.wasmPath } : {}),
+      ...(this.opts.wasmDir !== undefined ? { wasmDir: this.opts.wasmDir } : {}),
     })
     this.grammar = await loadGrammar(wasmPath)
     this.queryRunner = new QueryRunner(this.grammar)
@@ -86,6 +86,8 @@ export class PythonAnalyzer implements LanguageAnalyzer {
 
     const parser = await createParser(this.grammar)
     const tree = parser.parse(text)
+    if (!tree) throw new Error('Failed to parse ' + path)
+    if (!tree) throw new Error()
 
     const matches = this.queryRunner.matches(TAGS_QUERY, tree)
 
@@ -198,7 +200,7 @@ export class PythonAnalyzer implements LanguageAnalyzer {
       // Each match corresponds to one import pattern in the query.
       // We reconstruct the full specifier + classification from the captures.
       const caps = Object.fromEntries(
-        match.captures.map((c) => [c.name, c]),
+        match.captures.map((c: CaptureResult) => [c.name, c]),
       )
 
       // ── import foo (absolute) ──────────────────────────────────────────
