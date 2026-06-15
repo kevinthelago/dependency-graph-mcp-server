@@ -17,11 +17,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // vi.hoisted runs before vi.mock factories so the variable is in scope.
 const { mockMatches } = vi.hoisted(() => ({ mockMatches: vi.fn().mockReturnValue([]) }));
 
-// --- Mock py-1 (tree-sitter scaffold) ---
-vi.mock('../../../src/analyzers/tree-sitter/index.js', () => ({
+// --- Mock py-1 tree-sitter loader (loadGrammar, resolveGrammarPath, createParser) ---
+vi.mock('../../../src/analyzers/tree-sitter/loader.js', () => ({
   loadGrammar: vi.fn().mockResolvedValue({ _lang: 'objc' }),
   resolveGrammarPath: vi.fn().mockReturnValue('/mock/tree-sitter-objc.wasm'),
   createParser: vi.fn().mockResolvedValue({ parse: vi.fn().mockReturnValue({ rootNode: {} }) }),
+}));
+
+// --- Mock py-1 tree-sitter query runner (QueryRunner) ---
+vi.mock('../../../src/analyzers/tree-sitter/query-runner.js', () => ({
   QueryRunner: vi.fn().mockImplementation(() => ({ matches: mockMatches })),
 }));
 
