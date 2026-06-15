@@ -1,11 +1,6 @@
-/**
- * Parse cache — better-sqlite3-backed, content-keyed, LRU-evicting.
- * Owned by core-4.
- */
-
-import Database from 'better-sqlite3';
-import { createHash } from 'node:crypto';
-import type { AnalysisFragment } from '../analyzers/types.js';
+import { DatabaseSync } from "node:sqlite";
+import { createHash } from "node:crypto";
+import type { AnalysisFragment } from "../analyzers/types.js";
 
 export interface CacheKey {
   analyzerId: string;
@@ -14,61 +9,8 @@ export interface CacheKey {
   contentHash: string;
 }
 
-export function contentHash(content: string): string {
-  return createHash('sha256').update(content).digest('hex');
-}
-
-export class ParseCache {
-  private readonly _db: Database.Database;
-  private readonly _max: number;
-
-  constructor(dbPath: string, maxEntries = Infinity) {
-    this._max = maxEntries;
-    this._db = new Database(dbPath);
-    this._db.pragma('journal_mode = WAL');
-    this._db.exec(`
-      CREATE TABLE IF NOT EXISTS cache (
-        key TEXT PRIMARY KEY,
-        value TEXT NOT NULL,
-        inserted_at INTEGER NOT NULL
-      );
-      CREATE INDEX IF NOT EXISTS cache_time ON cache(inserted_at);
-    `);
-  }
-
-  get(key: CacheKey): AnalysisFragment | undefined {
-    const k = serializeKey(key);
-    const row = this._db.prepare('SELECT value FROM cache WHERE key = ?').get(k) as
-      | { value: string }
-      | undefined;
-    if (!row) return undefined;
-    return JSON.parse(row.value) as AnalysisFragment;
-  }
-
-  put(key: CacheKey, fragment: AnalysisFragment): void {
-    const k = serializeKey(key);
-    this._db
-      .prepare('INSERT OR REPLACE INTO cache (key, value, inserted_at) VALUES (?, ?, ?)')
-      .run(k, JSON.stringify(fragment), Date.now());
-    this._evict();
-  }
-
-  close(): void {
-    this._db.close();
-  }
-
-  private _evict(): void {
-    if (!isFinite(this._max)) return;
-    const { n } = this._db.prepare('SELECT COUNT(*) AS n FROM cache').get() as { n: number };
-    const excess = n - this._max;
-    if (excess > 0) {
-      this._db
-        .prepare(
-          'DELETE FROM cache WHERE key IN (SELECT key FROM cache ORDER BY inserted_at ASC LIMIT ?)',
-        )
-        .run(excess);
-    }
-  }
+export function contentHash(text: string): string {
+  return createHash("sha256").update(text).digest("hex");
 }
 
 function serializeKey(k: CacheKey): string {
@@ -83,6 +25,9 @@ export interface ICacheStore {
   put(key: CacheKey, fragment: AnalysisFragment): void;
 }
 
+/** @deprecated Use ICacheStore */
+export type ParseCacheInterface = ICacheStore;
+
 export function makeCacheKey(
   analyzerId: string,
   analyzerVersion: string,
@@ -90,4 +35,73 @@ export function makeCacheKey(
   hash: string,
 ): CacheKey {
   return { analyzerId, analyzerVersion, grammarVersion, contentHash: hash };
+}
+
+const DEFAULT_MAX_ENTRIES = 50_000;
+
+export class ParseCache implements ICacheStore {
+  private db: DatabaseSync;
+  private maxEntries: number;
+
+  constructor(dbPath: string, maxEntries = DEFAULT_MAX_ENTRIES) {
+    this.db = new DatabaseSync(dbPath);
+    this.maxEntries = maxEntries;
+    this._init();
+  }
+
+  private _init(): void {
+    this.db.exec(`PRAGMA journal_mode = WAL`);
+    this.db.exec(`PRAGMA synchronous = NORMAL`);
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS cache (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        accessed_at INTEGER NOT NULL DEFAULT (unixepoch())
+      )
+    `);
+    this.db.exec(`CREATE INDEX IF NOT EXISTS cache_accessed ON cache(accessed_at)`);
+  }
+
+  get(key: CacheKey): AnalysisFragment | undefined {
+    const k = serializeKey(key);
+    const row = this.db
+      .prepare("SELECT value FROM cache WHERE key = ?")
+      .get(k) as { value: string } | undefined;
+    if (!row) return undefined;
+    this.db.prepare("UPDATE cache SET accessed_at = unixepoch() WHERE key = ?").run(k);
+    return JSON.parse(row.value) as AnalysisFragment;
+  }
+
+  put(key: CacheKey, fragment: AnalysisFragment): void {
+    const k = serializeKey(key);
+    const v = JSON.stringify(fragment);
+    this.db
+      .prepare(
+        `INSERT INTO cache (key, value, accessed_at) VALUES (?, ?, unixepoch())
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, accessed_at = unixepoch()`,
+      )
+      .run(k, v);
+    this._evict();
+  }
+
+  private _evict(): void {
+    const row = this.db
+      .prepare("SELECT COUNT(*) as count FROM cache")
+      .get() as { count: number };
+    const count = row.count;
+    if (count > this.maxEntries) {
+      const toDelete = count - this.maxEntries;
+      this.db
+        .prepare(
+          `DELETE FROM cache WHERE key IN (
+            SELECT key FROM cache ORDER BY accessed_at ASC LIMIT ?
+          )`,
+        )
+        .run(toDelete);
+    }
+  }
+
+  close(): void {
+    this.db.close();
+  }
 }

@@ -1,8 +1,31 @@
+import type { WorktreeId } from "../graph/store.js";
+
 /**
- * Session scoping — owned by core-7; stub for worktree-view compilation.
- * Maps an MCP session id to a worktreeId.
+ * In-process session -> worktreeId binding.
+ *
+ * The MCP SDK doesn't expose a per-session context in tool handlers today,
+ * so we manage this map explicitly. `register_worktree` calls `bindSession`;
+ * tool handlers call `getWorktreeId` with whatever session identifier is
+ * available (worktree id itself passed through or looked up from auth context).
  */
 
-export declare function getSessionWorktreeId(sessionId: string): string | undefined;
-export declare function bindSession(sessionId: string, worktreeId: string): void;
-export declare function unbindSession(sessionId: string): void;
+const store = new Map<string, WorktreeId>();
+
+export function bindSession(sessionKey: string, worktreeId: WorktreeId): void {
+  store.set(sessionKey, worktreeId);
+}
+
+export function getWorktreeId(sessionKey: string): WorktreeId | null {
+  return store.get(sessionKey) ?? null;
+}
+
+export function unbindSession(sessionKey: string): void {
+  store.delete(sessionKey);
+}
+
+export function listSessions(): Array<{ sessionKey: string; worktreeId: WorktreeId }> {
+  return [...store.entries()].map(([sessionKey, worktreeId]) => ({
+    sessionKey,
+    worktreeId,
+  }));
+}

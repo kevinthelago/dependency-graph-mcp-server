@@ -1,6 +1,5 @@
 /**
  * LanguageAnalyzer interface — contract owner: core (core-5).
- * Scaffolded here so this stream can compile; core will own the authoritative version.
  * See contracts/language-analyzer.md and contracts/graph-model.md.
  */
 
@@ -42,6 +41,7 @@ export interface Edge {
   loc?: { line: number; col: number }
 }
 
+/** A resolved or unresolved import target produced by language analyzers. */
 export interface ImportRef {
   specifier: string
   /** Repo-relative path if resolved to a project file. */

@@ -1,6 +1,7 @@
 allowBuilds:
   better-sqlite3: true
   esbuild: true
+  tree-sitter: set this to true or false
   tree-sitter-c: true
   tree-sitter-cpp: true
   tree-sitter-rust: true

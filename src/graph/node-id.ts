@@ -44,6 +44,13 @@ export function containingFileId(id: NodeId): NodeId | null {
   return fileId(path);
 }
 
+/** @deprecated Use fileId() */
+export const makeFileId = fileId;
+/** @deprecated Use symbolId() */
+export const makeSymId = symbolId;
+/** @deprecated Use externalId() */
+export const makeExtId = externalId;
+
 /** Returns a short human-readable label for display purposes. */
 export function displayName(id: NodeId): string {
   if (id.startsWith("file:")) {

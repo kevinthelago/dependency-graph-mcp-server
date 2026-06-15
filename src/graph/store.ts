@@ -79,6 +79,35 @@ export interface Overlay {
   coveredFiles(): ReadonlySet<string>;
 }
 
+/** Simple in-memory Overlay implementation (used by watcher stream). */
+export class MemoryOverlay implements Overlay {
+  private readonly applied = new Map<string, OverlaySlice>();
+  private readonly deleted = new Set<string>();
+
+  applyFile(filePath: string, slice: OverlaySlice): void {
+    this.deleted.delete(filePath);
+    this.applied.set(filePath, slice);
+  }
+
+  deleteFile(filePath: string): void {
+    this.applied.delete(filePath);
+    this.deleted.add(filePath);
+  }
+
+  clearFile(filePath: string): void {
+    this.applied.delete(filePath);
+    this.deleted.delete(filePath);
+  }
+
+  isEmpty(): boolean {
+    return this.applied.size === 0 && this.deleted.size === 0;
+  }
+
+  coveredFiles(): ReadonlySet<string> {
+    return new Set([...this.applied.keys(), ...this.deleted]);
+  }
+}
+
 /** Read-only view returned by GraphStore.composedView(). */
 export interface StoreView {
   hasNode(id: NodeId): boolean;
@@ -169,7 +198,7 @@ export class GraphStore {
   }
 }
 
-/** The graph store singleton — owned by core-3. */
+/** The graph store singleton — owned by core-3 (OverlayStore in overlay-store.ts). */
 export declare const graphStore: {
   createOverlay(worktreeId: string): Overlay;
   dropOverlay(worktreeId: string): void;

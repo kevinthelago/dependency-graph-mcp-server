@@ -1,18 +1,19 @@
 import { relative, extname } from "node:path";
 import { readFile } from "node:fs/promises";
-import type { GraphStore, WorktreeId } from "../graph/store.js";
+import type { OverlayStore, WorktreeId } from "../graph/overlay-store.js";
 import type { ParseCache, CacheKey } from "../cache/index.js";
 import { contentHash } from "../cache/index.js";
 import type { AnalyzerRegistry } from "../analyzers/registry.js";
 import type { AnalysisFragment, ProjectContext } from "../analyzers/types.js";
 import { InvalidationEmitter } from "./events.js";
 import { applyBaseFile, removeBaseFile, applyOverlayFile, removeOverlayFile } from "./apply.js";
+import type { GraphView } from "../graph/store.js";
 
 export { InvalidationEmitter };
 
 export interface OrchestratorOptions {
   repoRoot: string;
-  store: GraphStore;
+  store: OverlayStore;
   cache: ParseCache;
   registry: AnalyzerRegistry;
   projectContext: ProjectContext;
@@ -21,7 +22,7 @@ export interface OrchestratorOptions {
 export class Orchestrator {
   readonly events = new InvalidationEmitter();
   private repoRoot: string;
-  private store: GraphStore;
+  private store: OverlayStore;
   private cache: ParseCache;
   private registry: AnalyzerRegistry;
   private projectContext: ProjectContext;
@@ -52,9 +53,6 @@ export class Orchestrator {
     return relative(this.repoRoot, absPath).split("\\").join("/");
   }
 
-  /**
-   * Cache-first analyze a file. Returns the fragment, storing it in cache on miss.
-   */
   async analyzeFile(absPath: string): Promise<AnalysisFragment | null> {
     const ext = extname(absPath).toLowerCase();
     const analyzer = this.registry.forExtension(ext);
@@ -83,9 +81,6 @@ export class Orchestrator {
     return fragment;
   }
 
-  /**
-   * Apply a file to the base graph (cache-first).
-   */
   async applyBaseFile(absPath: string): Promise<string[]> {
     const fragment = await this.analyzeFile(absPath);
     if (!fragment) return [];
@@ -96,21 +91,11 @@ export class Orchestrator {
     return nodeIds;
   }
 
-  /**
-   * Remove a file from the base graph.
-   */
   removeBaseFile(absPath: string): void {
-    const relPath = this.repoRelPath(absPath);
-    removeBaseFile(this.store, relPath);
+    removeBaseFile(this.store, this.repoRelPath(absPath));
   }
 
-  /**
-   * Apply a file to a worktree overlay (cache-first).
-   */
-  async applyOverlayFile(
-    worktreeId: WorktreeId,
-    absPath: string,
-  ): Promise<string[]> {
+  async applyOverlayFile(worktreeId: WorktreeId, absPath: string): Promise<string[]> {
     const fragment = await this.analyzeFile(absPath);
     if (!fragment) return [];
     const relPath = this.repoRelPath(absPath);
@@ -120,15 +105,11 @@ export class Orchestrator {
     return nodeIds;
   }
 
-  /**
-   * Mark a file as deleted in a worktree overlay.
-   */
   removeOverlayFile(worktreeId: WorktreeId, absPath: string): void {
-    const relPath = this.repoRelPath(absPath);
-    removeOverlayFile(this.store, worktreeId, relPath);
+    removeOverlayFile(this.store, worktreeId, this.repoRelPath(absPath));
   }
 
-  composedView(worktreeId: WorktreeId) {
+  composedView(worktreeId: WorktreeId): GraphView {
     return this.store.composedView(worktreeId);
   }
 }

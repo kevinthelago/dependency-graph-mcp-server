@@ -1,13 +1,28 @@
-/**
- * Analyzer registry — owned by core-5; stub for worktree-view compilation.
- */
-
 import type { LanguageAnalyzer } from "./types.js";
 
 export declare function getAnalyzerForFile(filePath: string): LanguageAnalyzer | undefined;
 export declare function registerAnalyzer(analyzer: LanguageAnalyzer): void;
 
-export interface AnalyzerRegistry {
-  all(): LanguageAnalyzer[];
-  forExtension(ext: string): LanguageAnalyzer | undefined;
+export class AnalyzerRegistry {
+  private byId = new Map<string, LanguageAnalyzer>();
+  private byExt = new Map<string, LanguageAnalyzer>();
+
+  register(analyzer: LanguageAnalyzer): void {
+    this.byId.set(analyzer.id, analyzer);
+    for (const ext of analyzer.extensions) {
+      this.byExt.set(ext.toLowerCase(), analyzer);
+    }
+  }
+
+  forExtension(ext: string): LanguageAnalyzer | undefined {
+    return this.byExt.get(ext.toLowerCase());
+  }
+
+  forId(id: string): LanguageAnalyzer | undefined {
+    return this.byId.get(id);
+  }
+
+  all(): LanguageAnalyzer[] {
+    return [...this.byId.values()];
+  }
 }

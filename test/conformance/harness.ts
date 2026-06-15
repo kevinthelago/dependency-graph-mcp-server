@@ -15,7 +15,7 @@ export interface ConformanceCase {
   text: string;
   /** Expected top-level symbol names (order-insensitive). */
   expectedSymbols?: string[];
-  /** Expected import specs (resolved or not). */
+  /** Expected import target ids (order-insensitive). */
   expectedImportSpecs?: string[];
   /** At least one edge with resolution "unresolved" expected? */
   expectsUnresolved?: boolean;

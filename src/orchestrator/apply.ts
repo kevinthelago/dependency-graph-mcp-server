@@ -1,62 +1,77 @@
-import type { GraphStore, WorktreeId } from "../graph/store.js";
+import type { OverlayStore, WorktreeId, FileSlice } from "../graph/overlay-store.js";
 import type { AnalysisFragment } from "../analyzers/types.js";
-import type { FileSlice } from "../graph/model.js";
-import { makeFileId } from "../graph/node-id.js";
+import type { NodeAttrs, EdgeAttrs, EdgeKind, FileNodeAttrs, Node } from "../graph/model.js";
 
-function fragmentToSlice(
-  filePath: string,
-  fragment: AnalysisFragment,
-): FileSlice {
+const EDGE_KIND_MAP: Record<string, EdgeKind> = {
+  import: "imports",
+  reference: "references",
+};
+
+function nodeToAttrs(node: Node): NodeAttrs {
+  if (node.kind === "file") {
+    const attrs: FileNodeAttrs = {
+      kind: "file",
+      filePath: node.id.slice(5),
+      displayName: node.name,
+    };
+    if (node.language != null) attrs.language = node.language;
+    return attrs;
+  }
+  if (node.kind === "symbol") {
+    return {
+      kind: "symbol",
+      filePath: node.file ?? node.id.slice(4, node.id.indexOf("#")),
+      symbolName: node.name,
+      displayName: node.name,
+    };
+  }
   return {
-    filePath,
-    nodes: [fragment.file, ...fragment.symbols],
-    edges: fragment.edges,
+    kind: "external",
+    packageName: node.name,
+    displayName: node.name,
   };
 }
 
-/**
- * Apply a file's analysis fragment to the base graph.
- * Atomically replaces the file's slice (stale-edge removal is handled by
- * store.applyBaseSlice which drops the old nodes/edges first).
- */
+function fragmentToSlice(filePath: string, fragment: AnalysisFragment): FileSlice {
+  return {
+    filePath,
+    nodes: [fragment.file, ...fragment.symbols].map((n) => ({
+      id: n.id,
+      attrs: nodeToAttrs(n),
+    })),
+    edges: fragment.edges.map((e) => {
+      const attrs: EdgeAttrs = { kind: EDGE_KIND_MAP[e.kind] ?? "imports" };
+      if (e.loc != null) attrs.line = e.loc.line;
+      return { from: e.from, to: e.to, attrs };
+    }),
+  };
+}
+
 export function applyBaseFile(
-  store: GraphStore,
+  store: OverlayStore,
   filePath: string,
   fragment: AnalysisFragment,
 ): void {
-  const slice = fragmentToSlice(filePath, fragment);
-  store.applyBaseSlice(slice);
+  store.applyBaseSlice(fragmentToSlice(filePath, fragment));
 }
 
-/**
- * Remove a file's slice from the base graph.
- */
-export function removeBaseFile(store: GraphStore, filePath: string): void {
+export function removeBaseFile(store: OverlayStore, filePath: string): void {
   store.removeBaseSlice(filePath);
 }
 
-/**
- * Apply a file's analysis fragment to a worktree overlay.
- */
 export function applyOverlayFile(
-  store: GraphStore,
+  store: OverlayStore,
   worktreeId: WorktreeId,
   filePath: string,
   fragment: AnalysisFragment,
 ): void {
-  const slice = fragmentToSlice(filePath, fragment);
-  store.applyOverlaySlice(worktreeId, slice);
+  store.applyOverlaySlice(worktreeId, fragmentToSlice(filePath, fragment));
 }
 
-/**
- * Mark a file as deleted in a worktree overlay.
- */
 export function removeOverlayFile(
-  store: GraphStore,
+  store: OverlayStore,
   worktreeId: WorktreeId,
   filePath: string,
 ): void {
   store.markOverlayDeleted(worktreeId, filePath);
 }
-
-export { makeFileId };

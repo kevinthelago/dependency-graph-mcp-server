@@ -1,80 +1,110 @@
-/**
- * Worktree registry — in-memory implementation.
- * Owned by core-7; this implementation satisfies the unit-test contract until
- * the core stream lands its durable version.
- */
-
-import * as nodePath from 'node:path';
-import * as fs from 'node:fs/promises';
-import { confinePathToRoot, ConfinementError, isWithin } from './confine.js';
+import { resolve, relative, isAbsolute } from "node:path";
+import { realpath } from "node:fs/promises";
+import type { WorktreeId } from "../graph/store.js";
 
 export interface WorktreeEntry {
-  worktreeId: string;
+  worktreeId: WorktreeId;
   worktreeRoot: string;
+  repoRoot: string;
   baseBranch: string;
+  /** ISO timestamp of last registration/refresh. */
+  registeredAt: string;
 }
 
-let _counter = 0;
+let nextId = 1;
 
 export class WorktreeRegistry {
-  private readonly _repoRoot: string;
-  private readonly _entries = new Map<string, WorktreeEntry>();
-  private readonly _byRoot = new Map<string, WorktreeEntry>();
+  private entries = new Map<WorktreeId, WorktreeEntry>();
+  private byPath = new Map<string, WorktreeId>();
+  private repoRoot: string;
+  private defaultBase: string;
 
-  constructor(repoRoot: string) {
-    this._repoRoot = repoRoot;
+  constructor(repoRoot: string, defaultBase = "develop") {
+    this.repoRoot = resolve(repoRoot);
+    this.defaultBase = defaultBase;
   }
 
-  async register(opts: { worktreeRoot: string }): Promise<WorktreeEntry> {
-    const real = await confineToRepo(opts.worktreeRoot, this._repoRoot);
+  async register(opts: {
+    worktreeRoot: string;
+    baseBranch?: string;
+  }): Promise<WorktreeEntry> {
+    const rawRoot = opts.worktreeRoot;
+    if (!rawRoot) throw new Error("worktreeRoot is required");
 
-    const existing = this._byRoot.get(real);
-    if (existing) return existing;
+    const absRoot = isAbsolute(rawRoot)
+      ? rawRoot
+      : resolve(this.repoRoot, rawRoot);
 
-    const id = `wt-${++_counter}`;
+    const preRel = relative(this.repoRoot, absRoot);
+    if (preRel.startsWith("..") || isAbsolute(preRel)) {
+      throw new Error(
+        `worktreeRoot escapes repo boundary: ${absRoot} (repo: ${this.repoRoot})`,
+      );
+    }
+
+    let realRoot: string;
+    try {
+      realRoot = await realpath(absRoot);
+    } catch {
+      throw new Error(`worktreeRoot does not exist: ${absRoot}`);
+    }
+
+    const rel = relative(this.repoRoot, realRoot);
+    if (rel.startsWith("..") || isAbsolute(rel)) {
+      throw new Error(
+        `worktreeRoot escapes repo boundary via symlink: ${realRoot} (repo: ${this.repoRoot})`,
+      );
+    }
+
+    const existing = this.byPath.get(realRoot);
+    if (existing) {
+      const entry = this.entries.get(existing)!;
+      entry.registeredAt = new Date().toISOString();
+      if (opts.baseBranch) entry.baseBranch = opts.baseBranch;
+      return entry;
+    }
+
+    const worktreeId: WorktreeId = `wt-${nextId++}`;
     const entry: WorktreeEntry = {
-      worktreeId: id,
-      worktreeRoot: real,
-      baseBranch: 'develop',
+      worktreeId,
+      worktreeRoot: realRoot,
+      repoRoot: this.repoRoot,
+      baseBranch: opts.baseBranch ?? this.defaultBase,
+      registeredAt: new Date().toISOString(),
     };
-    this._entries.set(id, entry);
-    this._byRoot.set(real, entry);
+    this.entries.set(worktreeId, entry);
+    this.byPath.set(realRoot, worktreeId);
     return entry;
   }
 
-  confinePath(worktreeId: string, relativePath: string): string {
-    const entry = this._entries.get(worktreeId);
-    if (!entry) throw new Error(`Unknown worktree: ${worktreeId}`);
-    const joined = nodePath.join(entry.worktreeRoot, relativePath);
-    const normalized = nodePath.normalize(joined);
-    if (!isWithin(normalized, entry.worktreeRoot)) {
-      throw new ConfinementError(
-        `Path '${relativePath}' would escape worktree root — access denied`,
-      );
-    }
-    return normalized;
+  get(worktreeId: WorktreeId): WorktreeEntry | undefined {
+    return this.entries.get(worktreeId);
   }
-}
 
-async function confineToRepo(targetPath: string, repoRoot: string): Promise<string> {
-  const resolvedRepo = await fs.realpath(repoRoot);
-  let real: string;
-  try {
-    real = await fs.realpath(targetPath);
-  } catch {
-    // Path doesn't exist yet — check normalized form against repo root
-    const normalized = nodePath.resolve(targetPath);
-    if (!isWithin(normalized, resolvedRepo)) {
-      throw new ConfinementError(
-        `Path '${normalized}' would escape repo root '${resolvedRepo}'`,
+  remove(worktreeId: WorktreeId): void {
+    const entry = this.entries.get(worktreeId);
+    if (entry) {
+      this.byPath.delete(entry.worktreeRoot);
+      this.entries.delete(worktreeId);
+    }
+  }
+
+  all(): WorktreeEntry[] {
+    return [...this.entries.values()];
+  }
+
+  confinePath(worktreeId: WorktreeId, filePath: string): string {
+    const entry = this.entries.get(worktreeId);
+    if (!entry) throw new Error(`Unknown worktreeId: ${worktreeId}`);
+    const abs = isAbsolute(filePath)
+      ? filePath
+      : resolve(entry.worktreeRoot, filePath);
+    const rel = relative(entry.worktreeRoot, abs);
+    if (rel.startsWith("..") || isAbsolute(rel)) {
+      throw new Error(
+        `Path escapes worktree boundary: ${abs} (root: ${entry.worktreeRoot})`,
       );
     }
-    real = normalized;
+    return abs;
   }
-  if (!isWithin(real, resolvedRepo)) {
-    throw new ConfinementError(
-      `Path '${real}' would escape repo root '${resolvedRepo}'`,
-    );
-  }
-  return real;
 }
