@@ -3,13 +3,10 @@
  *
  * Wraps web-tree-sitter's Query API with a cache so each (language, source)
  * pair compiles the query exactly once.
- *
- * Compatibility note (web-tree-sitter 0.24.x): Query is NOT accessible as a
- * top-level constructor — use language.query(source) to compile. QueryMatch
- * uses `.pattern` (not `.patternIndex`); SyntaxNode is the node type.
  */
 
-import type { Language, Tree, SyntaxNode, QueryCapture, Query } from 'web-tree-sitter'
+import { Query } from 'web-tree-sitter'
+import type { Language, Tree, Node as SyntaxNode, QueryCapture } from 'web-tree-sitter'
 
 export interface CaptureResult {
   name: string
@@ -30,11 +27,10 @@ export class QueryRunner {
   private getQuery(source: string): Query {
     const cached = this.queryCache.get(source)
     if (cached) return cached
-    const q = this.language.query(source)
+    const q = new Query(this.language, source)
     this.queryCache.set(source, q)
     return q
   }
-
   /**
    * Run a query and return all matches with named captures.
    * Matches are returned in document order (ascending start byte).
@@ -42,7 +38,7 @@ export class QueryRunner {
   matches(querySource: string, tree: Tree): PatternMatch[] {
     const q = this.getQuery(querySource)
     return q.matches(tree.rootNode).map((m) => ({
-      patternIndex: m.pattern,
+      patternIndex: m.patternIndex,
       captures: m.captures.map((c: QueryCapture) => ({
         name: c.name,
         node: c.node,

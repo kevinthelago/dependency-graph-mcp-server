@@ -12,8 +12,7 @@
 
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
-import Parser from 'web-tree-sitter';
-import type { Language } from 'web-tree-sitter';
+import { Parser, Language } from 'web-tree-sitter';
 
 const _require = createRequire(import.meta.url);
 
@@ -82,7 +81,7 @@ async function ensureInit(): Promise<void> {
       locateFile: (_scriptName: string) => wasmPath,
     });
   }
-  return webInitPromise ?? undefined;
+  return webInitPromise;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -106,7 +105,7 @@ export async function createGrammarParser(language: GrammarLanguage): Promise<Gr
   if (!lang) {
     const wasmPkg = language === 'c' ? 'tree-sitter-c' : 'tree-sitter-cpp';
     const wasmPath = getGrammarWasmPath(wasmPkg);
-    lang = await Parser.Language.load(wasmPath);
+    lang = await Language.load(wasmPath);
     languageCache.set(language, lang);
   }
 
